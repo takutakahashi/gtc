@@ -1,16 +1,22 @@
 package gtc
 
 import (
+	"os"
+	"time"
+
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 type ClientOpt struct {
-	dirPath   string
-	originURL string
-	auth      transport.AuthMethod
+	dirPath     string
+	originURL   string
+	authorName  string
+	authorEmail string
+	auth        transport.AuthMethod
 }
 
 type Client struct {
@@ -18,6 +24,17 @@ type Client struct {
 	r   *git.Repository
 }
 
+type File struct {
+	f os.File
+}
+
+func Init(opt ClientOpt) (Client, error) {
+	r, err := git.PlainInit(opt.dirPath, false)
+	if err != nil {
+		return Client{}, err
+	}
+	return Client{opt: opt, r: r}, nil
+}
 func Clone(opt ClientOpt) (Client, error) {
 	cloneOpt, err := CloneOpt(opt.originURL, &opt.auth)
 	if err != nil {
@@ -32,9 +49,43 @@ func Clone(opt ClientOpt) (Client, error) {
 
 //func (*Client) SubmoduleUpdate() error                         {}
 
-//func (c *Client) Add(filePath string) error                                    {}
-//func (c *Client) Status() ([]string, error)                                    {}
-//func (c *Client) Commit(message string) error                                  {}
+func (c *Client) Add(filePath string) error {
+	if c.r == nil {
+		return errors.New("this repository is not initialized")
+	}
+	w, err := c.r.Worktree()
+	if err != nil {
+		return err
+	}
+	_, err = w.Add(filePath)
+	return err
+}
+
+// func (c *Client) Status() ([]File, error) {
+// 	files := []File{}
+// 	if c.r == nil {
+// 		return files, errors.New("repository is not set")
+// 	}
+// 	w, err := c.r.Worktree()
+// 	s, err := w.Status()
+// 	return files, nil
+// }
+
+func (c *Client) Commit(message string) error {
+	w, err := c.r.Worktree()
+	if err != nil {
+		return err
+	}
+	_, err = w.Commit(message, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  c.opt.authorName,
+			Email: c.opt.authorEmail,
+			When:  time.Now(),
+		},
+	})
+	return err
+}
+
 //func (c *Client) Push() error                                                  {}
 //func (c *Client) SubmoduleInit(localPath string, url string, auth *Auth) error {}
 // func (c *Client) SubmoduleAdd(localPath, url, branch string, auth *Auth) error {
