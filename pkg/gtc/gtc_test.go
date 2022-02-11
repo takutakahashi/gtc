@@ -34,20 +34,38 @@ func mockOptBasicAuth() ClientOpt {
 func mockOptSSHAuth() ClientOpt {
 	o := mockOpt()
 	o.originURL = "git@github.com:takutakahashi/gtc.git"
-	sshKey, _ := ioutil.ReadFile("/Users/takutaka/.ssh/id_rsa")
+	sshKey, _ := ioutil.ReadFile(os.Getenv("TEST_SSH_PRIVATE_KEY_PATH"))
 	auth, _ := ssh.NewPublicKeys("git", sshKey, "")
 	auth.HostKeyCallback = ssh2.InsecureIgnoreHostKey()
 	o.auth = auth
 	return o
 }
 
-func mockGen() (ClientOpt, ClientOpt, ClientOpt) {
-	return mockOpt(), mockOptBasicAuth(), mockOptSSHAuth()
-}
-
 func mockInit() Client {
 	c, _ := Init(mockOpt())
 	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, "file"), []byte{0, 0}, 0644)
+	c.Add("file")
+	c.Commit("init")
+	return c
+}
+
+func mockWithRemote() Client {
+	rc := mockInit()
+	opt := mockOpt()
+	opt.originURL = rc.opt.dirPath
+	c, err := Clone(opt)
+	if err != nil {
+		panic(err)
+	}
+	return c
+
+}
+
+func mockWithRemoteAndDirty() Client {
+	c := mockWithRemote()
+	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, "file2"), []byte{0, 0}, 0644)
+	c.Add("file2")
+	c.Commit("add")
 	return c
 }
 
@@ -119,28 +137,44 @@ func TestClient_Add(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
+		client  Client
 		args    args
 		wantErr bool
 	}{
 		{
-			name:    "ok",
+			name:    "ok_local",
+			client:  mockInit(),
 			args:    args{filePath: "file"},
 			wantErr: false,
 		},
 		{
-			name:    "no file",
+			name:    "no file_local",
+			client:  mockInit(),
+			args:    args{filePath: "no_file"},
+			wantErr: true,
+		},
+		{
+			name:    "ok_remote",
+			client:  mockWithRemote(),
+			args:    args{filePath: "file"},
+			wantErr: false,
+		},
+		{
+			name:    "no file_remote",
+			client:  mockWithRemote(),
 			args:    args{filePath: "no_file"},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := mockInit()
-			t.Log(c.opt.dirPath)
+			c := tt.client
+			t.Log(c.opt)
 			if err := c.Add(tt.args.filePath); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Add() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+
 	}
 }
 
@@ -166,6 +200,37 @@ func TestClient_Commit(t *testing.T) {
 			t.Log(c.opt.dirPath)
 			if err := c.Commit(tt.args.message); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Commit() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_Push(t *testing.T) {
+	tests := []struct {
+		name    string
+		client  Client
+		wantErr bool
+	}{
+		{
+			name:    "ok",
+			client:  mockWithRemoteAndDirty(),
+			wantErr: false,
+		},
+		{
+			name:    "up-to-date",
+			client:  mockWithRemote(),
+			wantErr: true,
+		},
+		{
+			name:    "no-remote",
+			client:  mockInit(),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.client.Push(); (err != nil) != tt.wantErr {
+				t.Errorf("Client.Push() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

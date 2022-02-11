@@ -86,7 +86,17 @@ func (c *Client) Commit(message string) error {
 	return err
 }
 
-//func (c *Client) Push() error                                                  {}
+func (c *Client) Push() error {
+	return c.r.Push(&git.PushOptions{
+		RemoteName: "origin",
+		Auth:       c.opt.auth,
+	})
+}
+
+// func (c *Client) Checkout(branch string) error {
+//
+// }
+
 //func (c *Client) SubmoduleInit(localPath string, url string, auth *Auth) error {}
 // func (c *Client) SubmoduleAdd(localPath, url, branch string, auth *Auth) error {
 // 	gitmodTemplate := `[submodule "{{.Name}}"]
