@@ -61,6 +61,21 @@ func mockWithRemote() Client {
 
 }
 
+func mockWithBehindFromRemote() Client {
+	rc := mockInit()
+	opt := mockOpt()
+	opt.originURL = rc.opt.dirPath
+	c, err := Clone(opt)
+	if err != nil {
+		panic(err)
+	}
+	os.WriteFile(fmt.Sprintf("%s/%s", rc.opt.dirPath, "file2"), []byte{0, 0}, 0644)
+	rc.Add("file2")
+	rc.Commit("commit")
+	return c
+
+}
+
 func mockWithRemoteAndDirty() Client {
 	c := mockWithRemote()
 	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, "file2"), []byte{0, 0}, 0644)
@@ -231,6 +246,46 @@ func TestClient_Push(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.client.Push(); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Push() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestClient_Pull(t *testing.T) {
+	type args struct {
+		branch string
+	}
+	tests := []struct {
+		name    string
+		client  Client
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "ok",
+			client:  mockWithBehindFromRemote(),
+			args:    args{branch: "master"},
+			wantErr: false,
+		},
+		{
+			name:    "up-to-date",
+			client:  mockWithRemote(),
+			args:    args{branch: "master"},
+			wantErr: false,
+		},
+		{
+			name:    "NG",
+			client:  mockInit(),
+			args:    args{branch: "master"},
+			wantErr: true,
+		},
+
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.client.Pull(tt.args.branch); (err != nil) != tt.wantErr {
+				t.Errorf("Client.Pull() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

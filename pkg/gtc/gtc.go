@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/pkg/errors"
@@ -93,6 +94,22 @@ func (c *Client) Push() error {
 	})
 }
 
+func (c *Client) Pull(branch string) error {
+	w, err := c.r.Worktree()
+	if err != nil {
+		return err
+	}
+	po, err := PullOpt("origin", &c.opt.auth)
+	if err != nil {
+		return err
+	}
+	po.ReferenceName = plumbing.NewBranchReferenceName(branch)
+	if err := w.Pull(po); err != nil && err != git.NoErrAlreadyUpToDate {
+		return err
+	}
+	return nil
+}
+
 // func (c *Client) Checkout(branch string) error {
 //
 // }
@@ -152,13 +169,14 @@ func PullOpt(remoteName string, auth *transport.AuthMethod) (*git.PullOptions, e
 	return opt, nil
 }
 
-func FetchOpt(remoteName string, auth *transport.AuthMethod) (*git.FetchOptions, error) {
-	opt := &git.FetchOptions{
-		RemoteName: remoteName,
-		Auth:       *auth,
-	}
-	if opt.Auth == nil {
-		logrus.Warn("no authentication parameter was found. no auth method will be used")
-	}
-	return opt, nil
-}
+//
+// func FetchOpt(remoteName string, auth *transport.AuthMethod) (*git.FetchOptions, error) {
+// 	opt := &git.FetchOptions{
+// 		RemoteName: remoteName,
+// 		Auth:       *auth,
+// 	}
+// 	if opt.Auth == nil {
+// 		logrus.Warn("no authentication parameter was found. no auth method will be used")
+// 	}
+// 	return opt, nil
+// }
