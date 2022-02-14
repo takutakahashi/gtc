@@ -10,6 +10,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: unittest
+        env:
+          TEST_BASIC_AUTH_USERNAME: takutakahashi
+          TEST_BASIC_AUTH_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
           go test ./pkg/gtc/
       
