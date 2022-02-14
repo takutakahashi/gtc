@@ -53,7 +53,7 @@ func mockOpt() ClientOpt {
 
 func mockOptBasicAuth() ClientOpt {
 	o := mockOpt()
-	o.originURL = "https://github.com/takutakahashi/private-repository-test.git"
+	o.originURL = "https://github.com/takutakahashi/gtc.git"
 	auth := &http.BasicAuth{
 		Username: os.Getenv("TEST_BASIC_AUTH_USERNAME"),
 		Password: os.Getenv("TEST_BASIC_AUTH_PASSWORD"),
@@ -114,19 +114,13 @@ func mockWithRemoteAndDirty() Client {
 	return c
 }
 
-func mockWithRemoteAndNoCommitedFile() Client {
-	c := mockWithRemote()
-	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, "file2"), []byte{0, 0}, 0644)
-	return c
-}
-
 func TestClone(t *testing.T) {
 	type args struct {
 		opt ClientOpt
 	}
 	noAuth := mockOpt()
 	basicAuth := mockOptBasicAuth()
-	sshAuth := mockOptSSHAuth()
+	// sshAuth := mockOptSSHAuth()
 	tests := []struct {
 		name    string
 		args    args
@@ -147,13 +141,13 @@ func TestClone(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		{
-			name: "clone_ssh_auth",
-			args: args{
-				opt: sshAuth,
-			},
-			wantErr: false,
-		},
+		// {
+		// 	name: "clone_ssh_auth",
+		// 	args: args{
+		// 		opt: sshAuth,
+		// 	},
+		// 	wantErr: false,
+		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
