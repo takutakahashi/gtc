@@ -1,0 +1,14 @@
+name: unittest
+on:
+  - push
+
+jobs:
+  runs-on: ubuntu-latest
+  unittest:
+    container:
+      image: golang:1.17
+    steps:
+      - name: unittest
+        run: |
+          go test ./pkg/gtc/
+      
