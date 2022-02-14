@@ -4,12 +4,42 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	ssh2 "golang.org/x/crypto/ssh"
 )
+
+type gitCommand []string
+
+var currentBranch gitCommand = []string{"branch", "--show-current"}
+var gitStatus gitCommand = []string{"status", "-s"}
+
+func (c *Client) gatherInfo() (map[string][]string, error) {
+	result := map[string][]string{}
+	ret, err := c.gitExec(currentBranch)
+	result["branch"] = ret
+	if err != nil {
+		return nil, err
+	}
+	ret, err = c.gitExec(gitStatus)
+	if err != nil {
+		return nil, err
+	}
+	result["status"] = ret
+	return result, nil
+}
+
+func assertion(t *testing.T, c Client, asserts map[string][]string) {
+	info, _ := c.gatherInfo()
+	for k, v := range asserts {
+		if !reflect.DeepEqual(info[k], v) {
+			t.Errorf("assetion failed for %v, expected: %v, actual: %v", k, v, info[k])
+		}
+	}
+}
 
 func mockOpt() ClientOpt {
 	dir, _ := ioutil.TempDir("/tmp", "gtc-")
@@ -84,15 +114,19 @@ func mockWithRemoteAndDirty() Client {
 	return c
 }
 
+func mockWithRemoteAndNoCommitedFile() Client {
+	c := mockWithRemote()
+	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, "file2"), []byte{0, 0}, 0644)
+	return c
+}
+
 func TestClone(t *testing.T) {
 	type args struct {
 		opt ClientOpt
 	}
 	noAuth := mockOpt()
 	basicAuth := mockOptBasicAuth()
-	_ = basicAuth
 	sshAuth := mockOptSSHAuth()
-	_ = sshAuth
 	tests := []struct {
 		name    string
 		args    args
@@ -212,7 +246,6 @@ func TestClient_Commit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := mockInit()
-			t.Log(c.opt.dirPath)
 			if err := c.Commit(tt.args.message); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Commit() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -224,6 +257,7 @@ func TestClient_Push(t *testing.T) {
 	tests := []struct {
 		name    string
 		client  Client
+		asserts map[string][]string
 		wantErr bool
 	}{
 		{
@@ -244,8 +278,15 @@ func TestClient_Push(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
 			if err := tt.client.Push(); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Push() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			info, _ := c.gatherInfo()
+			for k, v := range tt.asserts {
+				if !reflect.DeepEqual(info[k], v) {
+					t.Errorf("assetion failed for %v, expected: %v, actual: %v", k, v, info[k])
+				}
 			}
 		})
 	}
@@ -259,24 +300,37 @@ func TestClient_Pull(t *testing.T) {
 		name    string
 		client  Client
 		args    args
+		asserts map[string][]string
 		wantErr bool
 	}{
 		{
-			name:    "ok",
-			client:  mockWithBehindFromRemote(),
-			args:    args{branch: "master"},
+			name:   "ok",
+			client: mockWithBehindFromRemote(),
+			args:   args{branch: "master"},
+			asserts: map[string][]string{
+				"branch": {"master", ""},
+				"status": {""},
+			},
 			wantErr: false,
 		},
 		{
-			name:    "up-to-date",
-			client:  mockWithRemote(),
-			args:    args{branch: "master"},
+			name:   "up-to-date",
+			client: mockWithRemote(),
+			args:   args{branch: "master"},
+			asserts: map[string][]string{
+				"branch": {"master", ""},
+				"status": {""},
+			},
 			wantErr: false,
 		},
 		{
-			name:    "NG",
-			client:  mockInit(),
-			args:    args{branch: "master"},
+			name:   "NG",
+			client: mockInit(),
+			args:   args{branch: "master"},
+			asserts: map[string][]string{
+				"branch": {"master", ""},
+				"status": {""},
+			},
 			wantErr: true,
 		},
 
@@ -284,9 +338,77 @@ func TestClient_Pull(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.client.Pull(tt.args.branch); (err != nil) != tt.wantErr {
+			c := tt.client
+			if err := c.Pull(tt.args.branch); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Pull() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			info, _ := c.gatherInfo()
+			for k, v := range tt.asserts {
+				if !reflect.DeepEqual(info[k], v) {
+					t.Errorf("assetion failed for %v, expected: %v, actual: %v", k, v, info[k])
+				}
+			}
+		})
+	}
+}
+
+func TestClient_Checkout(t *testing.T) {
+	type args struct {
+		name  string
+		force bool
+	}
+	tests := []struct {
+		name    string
+		client  Client
+		args    args
+		asserts map[string][]string
+		wantErr bool
+	}{
+		{
+			name:   "ok",
+			client: mockInit(),
+			args: args{
+				name:  "master",
+				force: false,
+			},
+			asserts: map[string][]string{
+				"branch": {"master", ""},
+				"status": {""},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "ok_force",
+			client: mockInit(),
+			args: args{
+				name:  "master2",
+				force: true,
+			},
+			asserts: map[string][]string{
+				"branch": {"master2", ""},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "ng",
+			client: mockInit(),
+			args: args{
+				name:  "master2",
+				force: false,
+			},
+			asserts: map[string][]string{
+				"branch": {"master", ""},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if err := c.Checkout(tt.args.name, tt.args.force); (err != nil) != tt.wantErr {
+				t.Errorf("Client.Checkout() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assertion(t, c, tt.asserts)
 		})
 	}
 }

@@ -1,7 +1,10 @@
 package gtc
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -37,7 +40,7 @@ func Init(opt ClientOpt) (Client, error) {
 	return Client{opt: opt, r: r}, nil
 }
 func Clone(opt ClientOpt) (Client, error) {
-	cloneOpt, err := CloneOpt(opt.originURL, &opt.auth)
+	cloneOpt, err := cloneOpt(opt.originURL, &opt.auth)
 	if err != nil {
 		return Client{}, errors.Wrap(err, "failed to clone")
 	}
@@ -99,7 +102,7 @@ func (c *Client) Pull(branch string) error {
 	if err != nil {
 		return err
 	}
-	po, err := PullOpt("origin", &c.opt.auth)
+	po, err := pullOpt("origin", &c.opt.auth)
 	if err != nil {
 		return err
 	}
@@ -110,9 +113,19 @@ func (c *Client) Pull(branch string) error {
 	return nil
 }
 
-// func (c *Client) Checkout(branch string) error {
-//
-// }
+// Checkout is the function switchng another refs.
+// When force is true, create and switch new branch if named branch is not defined.
+func (c *Client) Checkout(name string, force bool) error {
+	w, err := c.r.Worktree()
+	if err != nil {
+		return err
+	}
+	return w.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.NewBranchReferenceName(name),
+		Create: force,
+		Force:  force,
+	})
+}
 
 //func (c *Client) SubmoduleInit(localPath string, url string, auth *Auth) error {}
 // func (c *Client) SubmoduleAdd(localPath, url, branch string, auth *Auth) error {
@@ -145,7 +158,14 @@ func (c *Client) Pull(branch string) error {
 // 	return errors.Wrap(err, "failed to add submodule")
 // }
 
-func CloneOpt(url string, auth *transport.AuthMethod) (*git.CloneOptions, error) {
+func (c *Client) gitExec(commands []string) ([]string, error) {
+	execCmd := []string{fmt.Sprintf("--git-dir=%s/.git", c.opt.dirPath), fmt.Sprintf("--work-tree=%s", c.opt.dirPath)}
+	execCmd = append(execCmd, commands...)
+	b, err := exec.Command("git", execCmd...).Output()
+	return strings.Split(string(b), "\n"), err
+}
+
+func cloneOpt(url string, auth *transport.AuthMethod) (*git.CloneOptions, error) {
 	opt := &git.CloneOptions{
 		URL:               url,
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
@@ -157,7 +177,7 @@ func CloneOpt(url string, auth *transport.AuthMethod) (*git.CloneOptions, error)
 	return opt, nil
 }
 
-func PullOpt(remoteName string, auth *transport.AuthMethod) (*git.PullOptions, error) {
+func pullOpt(remoteName string, auth *transport.AuthMethod) (*git.PullOptions, error) {
 	opt := &git.PullOptions{
 		RemoteName:        remoteName,
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
