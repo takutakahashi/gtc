@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	ssh2 "golang.org/x/crypto/ssh"
@@ -112,6 +113,16 @@ func mockWithRemoteAndDirty() Client {
 	c.Add("file2")
 	c.Commit("add")
 	return c
+}
+
+func mockWithSubmodule() Client {
+	c1 := mockInit()
+	c2 := mockInit()
+	c2.SubmoduleAdd("test", c1.opt.dirPath, nil)
+	os.WriteFile(fmt.Sprintf("%s/%s", c1.opt.dirPath, "file3"), []byte{0, 0}, 0644)
+	c1.Add("file3")
+	c1.Commit("add")
+	return c2
 }
 
 func TestClone(t *testing.T) {
@@ -395,6 +406,77 @@ func TestClient_Checkout(t *testing.T) {
 			c := tt.client
 			if err := c.Checkout(tt.args.name, tt.args.force); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Checkout() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assertion(t, c, tt.asserts)
+		})
+	}
+}
+
+func TestClient_SubmoduleAdd(t *testing.T) {
+	type args struct {
+		name string
+		url  string
+		auth *transport.AuthMethod
+	}
+	tests := []struct {
+		name    string
+		client  Client
+		args    args
+		asserts map[string][]string
+		wantErr bool
+	}{
+		{
+			name:   "ok",
+			client: mockInit(),
+			args: args{
+				name: "test",
+				url:  "https://github.com/takutakahashi/gtc.git",
+			},
+			asserts: map[string][]string{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if err := c.SubmoduleAdd(tt.args.name, tt.args.url, tt.args.auth); (err != nil) != tt.wantErr {
+				t.Errorf("Client.SubmoduleAdd() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assertion(t, c, tt.asserts)
+		})
+	}
+}
+
+func TestClient_SubmoduleUpdate(t *testing.T) {
+	tests := []struct {
+		name    string
+		client  Client
+		asserts map[string][]string
+		wantErr bool
+	}{
+		{
+			name:   "ok",
+			client: mockWithSubmodule(),
+			asserts: map[string][]string{
+				"status": {"A  .gitmodules", "AM test", ""},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "still_ok",
+			client: mockInit(),
+			asserts: map[string][]string{
+				"status": {""},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			t.Log(c)
+			if err := c.SubmoduleUpdate(); (err != nil) != tt.wantErr {
+				t.Errorf("Client.SubmoduleUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assertion(t, c, tt.asserts)
 		})
