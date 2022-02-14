@@ -8,6 +8,7 @@ jobs:
     container:
       image: golang:1.17
     steps:
+      - uses: actions/checkout@v2
       - name: unittest
         run: |
           go test ./pkg/gtc/
