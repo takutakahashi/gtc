@@ -2,7 +2,6 @@ package gtc
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -26,10 +25,6 @@ type ClientOpt struct {
 type Client struct {
 	opt ClientOpt
 	r   *git.Repository
-}
-
-type File struct {
-	f os.File
 }
 
 func Init(opt ClientOpt) (Client, error) {
@@ -127,36 +122,22 @@ func (c *Client) Checkout(name string, force bool) error {
 	})
 }
 
-//func (c *Client) SubmoduleInit(localPath string, url string, auth *Auth) error {}
-// func (c *Client) SubmoduleAdd(localPath, url, branch string, auth *Auth) error {
-// 	gitmodTemplate := `[submodule "{{.Name}}"]
-//     path = {{.Path}}
-//     url = {{.URL}}
-//     branch = {{.Branch}}
-//     `
-// 	v := struct {
-// 		Name   string
-// 		Path   string
-// 		URL    string
-// 		Branch string
-// 	}{
-// 		Name:   localPath,
-// 		Path:   localPath,
-// 		URL:    url,
-// 		Branch: branch,
-// 	}
-// 	t := template.Must(template.New("gitmodule").Parse(gitmodTemplate))
-// 	var buf bytes.Buffer
-// 	if err := t.Execute(&buf, v); err != nil {
-// 		return err
-// 	}
-// 	if err := ioutil.WriteFile(fmt.Sprintf("%s/.gitmodules", c.opt.dirPath), buf.Bytes(), 0644); err != nil {
-// 		return err
-// 	}
-// 	cmd := exec.Command("git", "submodule", "add", url, localPath)
-// 	_, err := cmd.Output()
-// 	return errors.Wrap(err, "failed to add submodule")
-// }
+func (c *Client) SubmoduleAdd(name, url string, auth *transport.AuthMethod) error {
+	if _, err := c.gitExec([]string{"submodule", "add", url, name}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) SubmoduleUpdate() error {
+	if _, err := c.gitExec([]string{"submodule", "init"}); err != nil {
+		return err
+	}
+	if _, err := c.gitExec([]string{"submodule", "update", "--remote"}); err != nil {
+		return err
+	}
+	return nil
+}
 
 func (c *Client) gitExec(commands []string) ([]string, error) {
 	execCmd := []string{fmt.Sprintf("--git-dir=%s/.git", c.opt.dirPath), fmt.Sprintf("--work-tree=%s", c.opt.dirPath)}
