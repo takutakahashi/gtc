@@ -188,6 +188,7 @@ func TestClient_Add(t *testing.T) {
 		name    string
 		client  Client
 		args    args
+		asserts map[string][]string
 		wantErr bool
 	}{
 		{
@@ -222,6 +223,7 @@ func TestClient_Add(t *testing.T) {
 			if err := c.Add(tt.args.filePath); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Add() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			assertion(t, c, tt.asserts)
 		})
 
 	}
@@ -234,6 +236,7 @@ func TestClient_Commit(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
+		asserts map[string][]string
 		wantErr bool
 	}{
 		{
@@ -249,6 +252,7 @@ func TestClient_Commit(t *testing.T) {
 			if err := c.Commit(tt.args.message); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Commit() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			assertion(t, c, tt.asserts)
 		})
 	}
 }
@@ -282,12 +286,7 @@ func TestClient_Push(t *testing.T) {
 			if err := tt.client.Push(); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Push() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			info, _ := c.gatherInfo()
-			for k, v := range tt.asserts {
-				if !reflect.DeepEqual(info[k], v) {
-					t.Errorf("assetion failed for %v, expected: %v, actual: %v", k, v, info[k])
-				}
-			}
+			assertion(t, c, tt.asserts)
 		})
 	}
 }
@@ -342,12 +341,7 @@ func TestClient_Pull(t *testing.T) {
 			if err := c.Pull(tt.args.branch); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Pull() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			info, _ := c.gatherInfo()
-			for k, v := range tt.asserts {
-				if !reflect.DeepEqual(info[k], v) {
-					t.Errorf("assetion failed for %v, expected: %v, actual: %v", k, v, info[k])
-				}
-			}
+			assertion(t, c, tt.asserts)
 		})
 	}
 }
