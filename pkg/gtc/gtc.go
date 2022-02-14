@@ -1,8 +1,6 @@
 package gtc
 
 import (
-	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -28,10 +26,6 @@ type Client struct {
 	r   *git.Repository
 }
 
-type File struct {
-	f os.File
-}
-
 func Init(opt ClientOpt) (Client, error) {
 	r, err := git.PlainInit(opt.dirPath, false)
 	if err != nil {
@@ -51,8 +45,6 @@ func Clone(opt ClientOpt) (Client, error) {
 	return Client{opt: opt, r: r}, nil
 }
 
-//func (*Client) SubmoduleUpdate() error                         {}
-
 func (c *Client) Add(filePath string) error {
 	if c.r == nil {
 		return errors.New("this repository is not initialized")
@@ -64,16 +56,6 @@ func (c *Client) Add(filePath string) error {
 	_, err = w.Add(filePath)
 	return err
 }
-
-// func (c *Client) Status() ([]File, error) {
-// 	files := []File{}
-// 	if c.r == nil {
-// 		return files, errors.New("repository is not set")
-// 	}
-// 	w, err := c.r.Worktree()
-// 	s, err := w.Status()
-// 	return files, nil
-// }
 
 func (c *Client) Commit(message string) error {
 	w, err := c.r.Worktree()
@@ -127,41 +109,27 @@ func (c *Client) Checkout(name string, force bool) error {
 	})
 }
 
-//func (c *Client) SubmoduleInit(localPath string, url string, auth *Auth) error {}
-// func (c *Client) SubmoduleAdd(localPath, url, branch string, auth *Auth) error {
-// 	gitmodTemplate := `[submodule "{{.Name}}"]
-//     path = {{.Path}}
-//     url = {{.URL}}
-//     branch = {{.Branch}}
-//     `
-// 	v := struct {
-// 		Name   string
-// 		Path   string
-// 		URL    string
-// 		Branch string
-// 	}{
-// 		Name:   localPath,
-// 		Path:   localPath,
-// 		URL:    url,
-// 		Branch: branch,
-// 	}
-// 	t := template.Must(template.New("gitmodule").Parse(gitmodTemplate))
-// 	var buf bytes.Buffer
-// 	if err := t.Execute(&buf, v); err != nil {
-// 		return err
-// 	}
-// 	if err := ioutil.WriteFile(fmt.Sprintf("%s/.gitmodules", c.opt.dirPath), buf.Bytes(), 0644); err != nil {
-// 		return err
-// 	}
-// 	cmd := exec.Command("git", "submodule", "add", url, localPath)
-// 	_, err := cmd.Output()
-// 	return errors.Wrap(err, "failed to add submodule")
-// }
+func (c *Client) SubmoduleAdd(name, url string, auth *transport.AuthMethod) error {
+	if out, err := c.gitExec([]string{"submodule", "add", url, name}); err != nil {
+		return errors.Wrapf(err, "stderr: %s", out)
+	}
+	return nil
+}
+
+func (c *Client) SubmoduleUpdate() error {
+	if _, err := c.gitExec([]string{"submodule", "init"}); err != nil {
+		return err
+	}
+	if _, err := c.gitExec([]string{"submodule", "update", "--remote"}); err != nil {
+		return err
+	}
+	return nil
+}
 
 func (c *Client) gitExec(commands []string) ([]string, error) {
-	execCmd := []string{fmt.Sprintf("--git-dir=%s/.git", c.opt.dirPath), fmt.Sprintf("--work-tree=%s", c.opt.dirPath)}
-	execCmd = append(execCmd, commands...)
-	b, err := exec.Command("git", execCmd...).Output()
+	cmd := exec.Command("git", commands...)
+	cmd.Dir = c.opt.dirPath
+	b, err := cmd.CombinedOutput()
 	return strings.Split(string(b), "\n"), err
 }
 
@@ -188,15 +156,3 @@ func pullOpt(remoteName string, auth *transport.AuthMethod) (*git.PullOptions, e
 	}
 	return opt, nil
 }
-
-//
-// func FetchOpt(remoteName string, auth *transport.AuthMethod) (*git.FetchOptions, error) {
-// 	opt := &git.FetchOptions{
-// 		RemoteName: remoteName,
-// 		Auth:       *auth,
-// 	}
-// 	if opt.Auth == nil {
-// 		logrus.Warn("no authentication parameter was found. no auth method will be used")
-// 	}
-// 	return opt, nil
-// }
