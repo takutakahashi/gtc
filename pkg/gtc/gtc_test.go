@@ -53,7 +53,7 @@ func mockOpt() ClientOpt {
 
 func mockOptBasicAuth() ClientOpt {
 	o := mockOpt()
-	o.originURL = "https://github.com/takutakahashi/private-repository-test.git"
+	o.originURL = "https://github.com/takutakahashi/gtc.git"
 	auth := &http.BasicAuth{
 		Username: os.Getenv("TEST_BASIC_AUTH_USERNAME"),
 		Password: os.Getenv("TEST_BASIC_AUTH_PASSWORD"),
