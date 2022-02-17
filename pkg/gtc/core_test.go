@@ -556,3 +556,70 @@ func TestClient_Clean(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_InitializedWithRemote(t *testing.T) {
+	tests := []struct {
+		name   string
+		client Client
+		want   bool
+	}{
+		{
+			name:   "ok",
+			client: mockWithRemote(),
+			want:   true,
+		},
+		{
+			name:   "ng",
+			client: mockInit(),
+			want:   false,
+		},
+		{
+			name: "ng_no_git_dir",
+			client: Client{
+				opt: ClientOpt{
+					dirPath: "/no_git_dir",
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if got := c.InitializedWithRemote(); got != tt.want {
+				t.Errorf("Client.InitializedWithRemote() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_Initialized(t *testing.T) {
+	tests := []struct {
+		name   string
+		client Client
+		want   bool
+	}{
+		{
+			name:   "ok",
+			client: mockInit(),
+			want:   true,
+		},
+		{
+			name: "ng_no_git_dir",
+			client: Client{
+				opt: ClientOpt{
+					dirPath: "/no_git_dir",
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if got := c.Initialized(); got != tt.want {
+				t.Errorf("Client.Initialized() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

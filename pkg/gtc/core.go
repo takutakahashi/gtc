@@ -70,6 +70,23 @@ func (c *Client) Clean() error {
 	return os.RemoveAll(c.opt.dirPath)
 }
 
+func (c *Client) Initialized() bool {
+	if c.r == nil {
+		return false
+	}
+	_, err := c.r.Worktree()
+	return err == nil
+}
+
+func (c *Client) InitializedWithRemote() bool {
+	out, err := c.gitExec([]string{"remote", "show"})
+	if err != nil {
+		return false
+	}
+	_, err = c.gitExec([]string{"remote", "show", out[0]})
+	return err == nil
+}
+
 func (c *Client) Commit(message string) error {
 	w, err := c.r.Worktree()
 	if err != nil {
