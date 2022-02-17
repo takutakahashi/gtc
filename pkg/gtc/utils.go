@@ -3,10 +3,16 @@ package gtc
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 )
 
 func (c *Client) addFile(path string, fileBlob []byte) error {
-	return ioutil.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, path), fileBlob, 0644)
+	filePath := fmt.Sprintf("%s/%s", c.opt.dirPath, path)
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filePath, fileBlob, 0644)
 }
 
 func (c *Client) CommitFiles(files map[string][]byte, message string) error {
@@ -18,5 +24,6 @@ func (c *Client) CommitFiles(files map[string][]byte, message string) error {
 			return err
 		}
 	}
+
 	return c.Commit(message)
 }

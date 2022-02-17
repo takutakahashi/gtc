@@ -17,6 +17,7 @@ type gitCommand []string
 
 var currentBranch gitCommand = []string{"branch", "--show-current"}
 var gitStatus gitCommand = []string{"status", "-s"}
+var gitDiffFile gitCommand = []string{"diff", "--name-only", "HEAD~"}
 
 func (c *Client) gatherInfo() (map[string][]string, error) {
 	result := map[string][]string{}
@@ -30,6 +31,11 @@ func (c *Client) gatherInfo() (map[string][]string, error) {
 		return nil, err
 	}
 	result["status"] = ret
+	ret, err = c.gitExec(gitDiffFile)
+	if err != nil {
+		return nil, err
+	}
+	result["diff"] = ret
 	return result, nil
 }
 
