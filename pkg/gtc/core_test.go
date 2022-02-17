@@ -17,19 +17,25 @@ type gitCommand []string
 
 var currentBranch gitCommand = []string{"branch", "--show-current"}
 var gitStatus gitCommand = []string{"status", "-s"}
+var gitDiffFile gitCommand = []string{"diff", "--name-only", "HEAD~"}
 
 func (c *Client) gatherInfo() (map[string][]string, error) {
 	result := map[string][]string{}
 	ret, err := c.gitExec(currentBranch)
 	result["branch"] = ret
 	if err != nil {
-		return nil, err
+		result["branch"] = nil
 	}
 	ret, err = c.gitExec(gitStatus)
 	if err != nil {
-		return nil, err
+		result["status"] = nil
 	}
 	result["status"] = ret
+	ret, err = c.gitExec(gitDiffFile)
+	if err != nil {
+		result["diff"] = nil
+	}
+	result["diff"] = ret
 	return result, nil
 }
 
