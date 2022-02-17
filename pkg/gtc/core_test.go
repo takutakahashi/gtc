@@ -24,16 +24,16 @@ func (c *Client) gatherInfo() (map[string][]string, error) {
 	ret, err := c.gitExec(currentBranch)
 	result["branch"] = ret
 	if err != nil {
-		return nil, err
+		result["branch"] = nil
 	}
 	ret, err = c.gitExec(gitStatus)
 	if err != nil {
-		return nil, err
+		result["status"] = nil
 	}
 	result["status"] = ret
 	ret, err = c.gitExec(gitDiffFile)
 	if err != nil {
-		return nil, err
+		result["diff"] = nil
 	}
 	result["diff"] = ret
 	return result, nil
