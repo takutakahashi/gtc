@@ -87,6 +87,17 @@ func (c *Client) InitializedWithRemote() bool {
 	return err == nil
 }
 
+func (c *Client) Fetch() error {
+	err := c.r.Fetch(&git.FetchOptions{
+		RemoteName: "origin",
+		Auth:       c.opt.auth,
+	})
+	if err != nil && err != git.NoErrAlreadyUpToDate {
+		return err
+	}
+	return nil
+}
+
 func (c *Client) Commit(message string) error {
 	w, err := c.r.Worktree()
 	if err != nil {

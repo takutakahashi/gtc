@@ -623,3 +623,35 @@ func TestClient_Initialized(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_Fetch(t *testing.T) {
+	tests := []struct {
+		name    string
+		client  Client
+		wantErr bool
+	}{
+		{
+			name:    "ok",
+			client:  mockWithRemote(),
+			wantErr: false,
+		},
+		{
+			name:    "ok_behind",
+			client:  mockWithBehindFromRemote(),
+			wantErr: false,
+		},
+		{
+			name:    "NG",
+			client:  mockInit(),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if err := c.Fetch(); (err != nil) != tt.wantErr {
+				t.Errorf("Client.Fetch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
