@@ -191,6 +191,46 @@ func TestClone(t *testing.T) {
 	}
 }
 
+func TestOpen(t *testing.T) {
+	c := mockInit()
+	type args struct {
+		opt ClientOpt
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "ok",
+			args: args{
+				opt: ClientOpt{
+					dirPath: c.opt.dirPath,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "ng",
+			args: args{
+				opt: ClientOpt{
+					dirPath: "/no_git_dir",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := Open(tt.args.opt)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Open() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
 func TestClient_Add(t *testing.T) {
 	type args struct {
 		filePath string

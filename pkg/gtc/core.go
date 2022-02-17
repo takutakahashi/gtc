@@ -33,6 +33,14 @@ func Init(opt ClientOpt) (Client, error) {
 	}
 	return Client{opt: opt, r: r}, nil
 }
+
+func Open(opt ClientOpt) (Client, error) {
+	r, err := git.PlainOpen(opt.dirPath)
+	if err != nil {
+		return Client{}, errors.Wrap(err, "failed to open")
+	}
+	return Client{opt: opt, r: r}, nil
+}
 func Clone(opt ClientOpt) (Client, error) {
 	cloneOpt, err := cloneOpt(opt.originURL, &opt.auth)
 	if err != nil {
