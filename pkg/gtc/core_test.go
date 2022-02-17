@@ -528,3 +528,31 @@ func TestClient_SubmoduleUpdate(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_Clean(t *testing.T) {
+	tests := []struct {
+		name    string
+		client  Client
+		wantErr bool
+	}{
+		{
+			name:    "ok",
+			client:  mockInit(),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if _, err := os.ReadDir(c.opt.dirPath); err != nil {
+				t.Errorf("directory is not found. err: %v", err)
+			}
+			if err := c.Clean(); (err != nil) != tt.wantErr {
+				t.Errorf("Client.Clean() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if dir, err := os.ReadDir(c.opt.dirPath); err == nil {
+				t.Errorf("directory is not deleted. dir: %v", dir)
+			}
+		})
+	}
+}

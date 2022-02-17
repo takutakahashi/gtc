@@ -1,6 +1,7 @@
 package gtc
 
 import (
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -63,6 +64,10 @@ func (c *Client) Add(filePath string) error {
 	}
 	_, err = w.Add(filePath)
 	return err
+}
+
+func (c *Client) Clean() error {
+	return os.RemoveAll(c.opt.dirPath)
 }
 
 func (c *Client) Commit(message string) error {
