@@ -83,6 +83,9 @@ func mockInit() Client {
 	c, _ := Init(mockOpt())
 	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, "file"), []byte{0, 0}, 0644)
 	c.Add("file")
+	os.MkdirAll(fmt.Sprintf("%s/dir", c.opt.dirPath), 0755)
+	os.WriteFile(fmt.Sprintf("%s/dir/dir_file", c.opt.dirPath), []byte{0, 0}, 0644)
+	c.Add("dir/dir_file")
 	c.Commit("init")
 	return c
 }

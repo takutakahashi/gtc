@@ -1,6 +1,7 @@
 package gtc
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -188,6 +189,74 @@ func TestClient_GetLatestTagReference(t *testing.T) {
 			hash, err := c.GetHash(tt.wantTagName)
 			if err != nil || !reflect.DeepEqual(got.Hash().String(), hash) {
 				t.Errorf("Client.GetLatestTagReference() = %v, want %v", got, tt.wantTagName)
+			}
+		})
+	}
+}
+
+func TestClient_ReadFiles(t *testing.T) {
+	c := mockInit()
+	type args struct {
+		paths      []string
+		ignoreFile []string
+		ignoreDir  []string
+	}
+	tests := []struct {
+		name    string
+		client  Client
+		args    args
+		want    map[string][]byte
+		wantErr bool
+	}{
+		{
+			name:   "ok_single",
+			client: c,
+			args: args{
+				paths:     []string{"file"},
+				ignoreDir: []string{".git"},
+			},
+			want: map[string][]byte{
+				fmt.Sprintf("%s/file", c.opt.dirPath): {0, 0},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "ok_directory",
+			client: c,
+			args: args{
+				paths:     []string{"."},
+				ignoreDir: []string{".git"},
+			},
+			want: map[string][]byte{
+				fmt.Sprintf("%s/file", c.opt.dirPath):         {0, 0},
+				fmt.Sprintf("%s/dir/dir_file", c.opt.dirPath): {0, 0},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "ok_ignore_file",
+			client: c,
+			args: args{
+				paths:      []string{"."},
+				ignoreDir:  []string{".git"},
+				ignoreFile: []string{"dir_file"},
+			},
+			want: map[string][]byte{
+				fmt.Sprintf("%s/file", c.opt.dirPath): {0, 0},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			got, err := c.ReadFiles(tt.args.paths, tt.args.ignoreFile, tt.args.ignoreDir)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.ReadFiles() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.ReadFiles() = %v, want %v", got, tt.want)
 			}
 		})
 	}
