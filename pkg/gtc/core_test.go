@@ -20,6 +20,7 @@ var currentBranch gitCommand = []string{"branch", "--show-current"}
 var gitStatus gitCommand = []string{"status", "-s"}
 var gitDiffFile gitCommand = []string{"diff", "--name-only", "HEAD~"}
 var latestCommitMessage gitCommand = []string{"log", "-1", "--pretty=%B"}
+var submoduleCheck gitCommand = []string{"submodule", "status"}
 
 func (c *Client) gatherInfo() (map[string][]string, error) {
 	result := map[string][]string{}
@@ -44,6 +45,12 @@ func (c *Client) gatherInfo() (map[string][]string, error) {
 		result["latestCommitMessage"] = nil
 	}
 	result["latestCommitMessage"] = ret
+
+	ret, err = c.gitExec(submoduleCheck)
+	if err != nil {
+		result["submoduleCheck"] = nil
+	}
+	result["submoduleCheck"] = ret
 	return result, nil
 }
 

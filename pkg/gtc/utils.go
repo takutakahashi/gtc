@@ -108,7 +108,7 @@ func readFiles(path string, ignoreFile, ignoreDir []string) (map[string][]byte, 
 		ret[path] = b
 		return ret, nil
 	}
-	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(path, func(path string, info os.FileInfo, e error) error {
 		if info.IsDir() {
 			for _, s := range ignoreDir {
 				if info.Name() == s {
@@ -133,4 +133,8 @@ func readFiles(path string, ignoreFile, ignoreDir []string) (map[string][]byte, 
 		return nil, err
 	}
 	return ret, nil
+}
+
+func (c *Client) AddClientAsSubmodule(name string, subc Client) error {
+	return c.SubmoduleAdd(name, subc.opt.dirPath, &subc.opt.auth)
 }

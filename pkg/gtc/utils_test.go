@@ -261,3 +261,54 @@ func TestClient_ReadFiles(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_AddClientAsSubmodule(t *testing.T) {
+	c1 := mockInit()
+	c2 := mockInit()
+	c2h, _ := c2.GetHash("master")
+	type args struct {
+		name string
+		subc Client
+	}
+	tests := []struct {
+		name    string
+		client  Client
+		args    args
+		asserts map[string][]string
+		wantErr bool
+	}{
+		{
+			name:   "ok",
+			client: c1,
+			args: args{
+				name: "base",
+				subc: c2,
+			},
+			asserts: map[string][]string{
+				"submoduleCheck": {fmt.Sprintf(" %s base (heads/master)", c2h), ""},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "ng_dup",
+			client: c1,
+			args: args{
+				name: "base",
+				subc: c2,
+			},
+			asserts: map[string][]string{
+				"submoduleCheck": {fmt.Sprintf(" %s base (heads/master)", c2h), ""},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if err := c.AddClientAsSubmodule(tt.args.name, tt.args.subc); (err != nil) != tt.wantErr {
+				t.Errorf("Client.AddClientAsSubmodule() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assertion(t, c, tt.asserts)
+		})
+	}
+}
