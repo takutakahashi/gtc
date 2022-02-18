@@ -1,8 +1,11 @@
 package gtc
 
 import (
+	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 func TestClient_CommitFiles(t *testing.T) {
@@ -135,6 +138,56 @@ func TestClient_GetHash(t *testing.T) {
 			if out, err := c.gitExec([]string{"rev-parse", tt.args.base}); err != nil || strings.Compare(out[0], got) != 0 {
 				t.Errorf("wrong revision. expected: %s, actual: %s", got, out[0])
 				return
+			}
+		})
+	}
+}
+
+func TestClient_GetLatestTagReference(t *testing.T) {
+	tests := []struct {
+		name        string
+		client      Client
+		wantTagName string
+		want        *plumbing.Reference
+		wantErr     bool
+	}{
+		{
+			name:        "ok_multiple_tag",
+			client:      mockWithTags([]string{"test1", "test3", "test2"}),
+			wantTagName: "test2",
+			wantErr:     false,
+		},
+		{
+			name:        "ok_single_tag",
+			client:      mockWithTags([]string{"test1"}),
+			wantTagName: "test1",
+			wantErr:     false,
+		},
+		{
+			name:    "ng_no_tag",
+			client:  mockInit(),
+			wantErr: true,
+		},
+		{
+			name:    "ng_only_remote_tag",
+			client:  mockWithRemoteTags([]string{"test1"}),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			got, err := c.GetLatestTagReference()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.GetLatestTagReference() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil && tt.wantErr {
+				return
+			}
+			hash, err := c.GetHash(tt.wantTagName)
+			if err != nil || !reflect.DeepEqual(got.Hash().String(), hash) {
+				t.Errorf("Client.GetLatestTagReference() = %v, want %v", got, tt.wantTagName)
 			}
 		})
 	}

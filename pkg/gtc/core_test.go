@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -87,6 +88,34 @@ func mockInit() Client {
 }
 func mockGtc() Client {
 	c, _ := Clone(mockOpt())
+	return c
+}
+
+func mockWithTags(tagNames []string) Client {
+	c := mockInit()
+	for i, name := range tagNames {
+		os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, name), []byte{0, 0, 0}, 0644)
+		c.Add(name)
+		c.commit(name, time.Now().AddDate(0, 0, i))
+		c.gitExec([]string{"tag", name})
+	}
+	return c
+}
+
+func mockWithRemoteTags(tagNames []string) Client {
+	rc := mockInit()
+	opt := mockOpt()
+	opt.originURL = rc.opt.dirPath
+	c, err := Clone(opt)
+	if err != nil {
+		panic(err)
+	}
+	for i, name := range tagNames {
+		os.WriteFile(fmt.Sprintf("%s/%s", rc.opt.dirPath, name), []byte{0, 0, 0}, 0644)
+		rc.Add(name)
+		rc.commit(name, time.Now().AddDate(0, 0, i))
+		rc.gitExec([]string{"tag", name})
+	}
 	return c
 }
 

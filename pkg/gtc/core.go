@@ -99,6 +99,10 @@ func (c *Client) Fetch() error {
 }
 
 func (c *Client) Commit(message string) error {
+	return c.commit(message, time.Now())
+}
+
+func (c *Client) commit(message string, date time.Time) error {
 	w, err := c.r.Worktree()
 	if err != nil {
 		return err
@@ -107,7 +111,7 @@ func (c *Client) Commit(message string) error {
 		Author: &object.Signature{
 			Name:  c.opt.authorName,
 			Email: c.opt.authorEmail,
-			When:  time.Now(),
+			When:  date,
 		},
 	})
 	return err

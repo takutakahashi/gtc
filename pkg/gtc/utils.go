@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/go-git/go-git/v5/plumbing"
 )
@@ -42,4 +43,32 @@ func (c *Client) GetHash(base string) (string, error) {
 		return base, nil
 	}
 	return "", errors.New("invalid base reference")
+}
+
+func (c *Client) GetLatestTagReference() (*plumbing.Reference, error) {
+	tags, err := c.r.Tags()
+	if err != nil {
+		return nil, err
+	}
+	latestTagDate := time.Unix(0, 0)
+	var latestTagReference *plumbing.Reference = nil
+	err = tags.ForEach(func(ref *plumbing.Reference) error {
+		commit, err := c.r.CommitObject(ref.Hash())
+		if err != nil {
+			return err
+		}
+		fmt.Println(ref.Name(), commit.Author.When)
+		if latestTagDate.Before(commit.Author.When) {
+			latestTagDate = commit.Author.When
+			latestTagReference = ref
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if latestTagReference == nil {
+		return nil, errors.New("no tag was found")
+	}
+	return latestTagReference, nil
 }
