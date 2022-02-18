@@ -171,6 +171,36 @@ func (c *Client) SubmoduleUpdate() error {
 	return nil
 }
 
+func (c *Client) SubmoduleSyncUpToDate(message string) error {
+	if err := c.SubmoduleUpdate(); err != nil {
+		return err
+	}
+	w, err := c.r.Worktree()
+	if err != nil {
+		return err
+	}
+	s, err := w.Submodules()
+	if err != nil {
+		return err
+	}
+	ss, err := s.Status()
+	if err != nil {
+		return err
+	}
+	if len(ss) == 0 {
+		return errors.New("no submodule found")
+	}
+	for _, status := range ss {
+		if err := c.Add(status.Path); err != nil {
+			return err
+		}
+	}
+	if err := c.Commit(message); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *Client) gitExec(commands []string) ([]string, error) {
 	cmd := exec.Command("git", commands...)
 	cmd.Dir = c.opt.dirPath

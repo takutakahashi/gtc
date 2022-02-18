@@ -19,6 +19,7 @@ type gitCommand []string
 var currentBranch gitCommand = []string{"branch", "--show-current"}
 var gitStatus gitCommand = []string{"status", "-s"}
 var gitDiffFile gitCommand = []string{"diff", "--name-only", "HEAD~"}
+var latestCommitMessage gitCommand = []string{"log", "-1", "--pretty=%B"}
 
 func (c *Client) gatherInfo() (map[string][]string, error) {
 	result := map[string][]string{}
@@ -37,6 +38,12 @@ func (c *Client) gatherInfo() (map[string][]string, error) {
 		result["diff"] = nil
 	}
 	result["diff"] = ret
+
+	ret, err = c.gitExec(latestCommitMessage)
+	if err != nil {
+		result["latestCommitMessage"] = nil
+	}
+	result["latestCommitMessage"] = ret
 	return result, nil
 }
 
@@ -688,6 +695,51 @@ func TestClient_Fetch(t *testing.T) {
 			if err := c.Fetch(); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Fetch() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+func TestClient_SubmoduleSyncUpToDate(t *testing.T) {
+	type args struct {
+		message string
+	}
+	tests := []struct {
+		name    string
+		client  Client
+		args    args
+		asserts map[string][]string
+		wantErr bool
+	}{
+		{
+			name:   "ok",
+			client: mockWithSubmodule(),
+			args: args{
+				message: "submodule update",
+			},
+			asserts: map[string][]string{
+				"latestCommitMessage": {"submodule update", ""},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "NG",
+			client: mockInit(),
+			args: args{
+				message: "submodule update",
+			},
+			asserts: map[string][]string{
+				"latestCommitMessage": {"init", ""},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if err := c.SubmoduleSyncUpToDate(tt.args.message); (err != nil) != tt.wantErr {
+				t.Errorf("Client.SubmoduleSyncUpToDate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assertion(t, c, tt.asserts)
 		})
 	}
 }
