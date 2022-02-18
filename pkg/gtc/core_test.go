@@ -85,6 +85,10 @@ func mockInit() Client {
 	c.Commit("init")
 	return c
 }
+func mockGtc() Client {
+	c, _ := Clone(mockOpt())
+	return c
+}
 
 func mockWithRemote() Client {
 	rc := mockInit()
