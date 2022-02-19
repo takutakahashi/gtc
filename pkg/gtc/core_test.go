@@ -9,9 +9,6 @@ import (
 	"time"
 
 	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	ssh2 "golang.org/x/crypto/ssh"
 )
 
 type gitCommand []string
@@ -76,19 +73,14 @@ func mockOpt() ClientOpt {
 func mockOptBasicAuth() ClientOpt {
 	o := mockOpt()
 	o.OriginURL = "https://github.com/takutakahashi/gtc.git"
-	auth := &http.BasicAuth{
-		Username: os.Getenv("TEST_BASIC_AUTH_USERNAME"),
-		Password: os.Getenv("TEST_BASIC_AUTH_PASSWORD"),
-	}
+	auth, _ := GetAuth(os.Getenv("TEST_BASIC_AUTH_USERNAME"), os.Getenv("TEST_BASIC_AUTH_PASSWORD"), "")
 	o.Auth = auth
 	return o
 }
 func mockOptSSHAuth() ClientOpt {
 	o := mockOpt()
 	o.OriginURL = "git@github.com:takutakahashi/gtc.git"
-	sshKey, _ := ioutil.ReadFile(os.Getenv("TEST_SSH_PRIVATE_KEY_PATH"))
-	auth, _ := ssh.NewPublicKeys("git", sshKey, "")
-	auth.HostKeyCallback = ssh2.InsecureIgnoreHostKey()
+	auth, _ := GetAuth("git", "", os.Getenv("TEST_SSH_PRIVATE_KEY_PATH"))
 	o.Auth = auth
 	return o
 }

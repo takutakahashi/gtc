@@ -1,6 +1,7 @@
 package gtc
 
 import (
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -10,8 +11,11 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	ssh2 "golang.org/x/crypto/ssh"
 )
 
 type ClientOpt struct {
@@ -25,6 +29,30 @@ type ClientOpt struct {
 type Client struct {
 	opt ClientOpt
 	r   *git.Repository
+}
+
+func GetAuth(username, password, sshKeyPath string) (transport.AuthMethod, error) {
+	if username != "" && password != "" {
+		auth := &http.BasicAuth{
+			Username: username,
+			Password: password,
+		}
+		return auth, nil
+	}
+	if username != "" && sshKeyPath != "" {
+		sshKey, err := ioutil.ReadFile(sshKeyPath)
+		if err != nil {
+			return nil, err
+		}
+		auth, err := ssh.NewPublicKeys(username, sshKey, "")
+		if err != nil {
+			return nil, err
+		}
+		// TODO: selectable later
+		auth.HostKeyCallback = ssh2.InsecureIgnoreHostKey()
+		return auth, nil
+	}
+	return nil, errors.New("no auth method was found")
 }
 
 func Init(opt ClientOpt) (Client, error) {
