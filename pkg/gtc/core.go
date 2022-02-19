@@ -19,6 +19,7 @@ type ClientOpt struct {
 	originURL   string
 	authorName  string
 	authorEmail string
+	revision    string
 	auth        transport.AuthMethod
 }
 
@@ -140,18 +141,28 @@ func (c *Client) Pull(branch string) error {
 	return nil
 }
 
-// Checkout is the function switchng another refs.
-// When force is true, create and switch new branch if named branch is not defined.
-func (c *Client) Checkout(name string, force bool) error {
+// Checkout is the function switchng to another branch.
+func (c *Client) CheckoutBranch(name string) error {
 	w, err := c.r.Worktree()
 	if err != nil {
 		return err
 	}
-	return w.Checkout(&git.CheckoutOptions{
-		Branch: plumbing.NewBranchReferenceName(name),
-		Create: force,
-		Force:  force,
-	})
+	branch := plumbing.NewBranchReferenceName(name)
+	if err := w.Checkout(&git.CheckoutOptions{
+		Branch: branch,
+		Create: false,
+		Force:  false,
+	}); err == nil {
+		return nil
+	}
+	if err := w.Checkout(&git.CheckoutOptions{
+		Branch: branch,
+		Create: false,
+		Force:  true,
+	}); err == nil {
+		return nil
+	}
+	return errors.New("failed to checkout branch")
 }
 
 func (c *Client) SubmoduleAdd(name, url string, auth *transport.AuthMethod) error {

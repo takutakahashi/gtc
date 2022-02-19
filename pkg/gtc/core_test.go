@@ -67,6 +67,7 @@ func mockOpt() ClientOpt {
 	dir, _ := ioutil.TempDir("/tmp", "gtc-")
 	return ClientOpt{
 		dirPath:     dir,
+		revision:    "main",
 		originURL:   "https://github.com/takutakahashi/gtc.git",
 		authorName:  "bob",
 		authorEmail: "bob@mail.com",
@@ -94,7 +95,10 @@ func mockOptSSHAuth() ClientOpt {
 }
 
 func mockInit() Client {
-	c, _ := Init(mockOpt())
+	c, err := Init(mockOpt())
+	if err != nil {
+		panic(err)
+	}
 	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, "file"), []byte{0, 0}, 0644)
 	c.Add("file")
 	os.MkdirAll(fmt.Sprintf("%s/dir", c.opt.dirPath), 0755)
@@ -447,10 +451,9 @@ func TestClient_Pull(t *testing.T) {
 	}
 }
 
-func TestClient_Checkout(t *testing.T) {
+func TestClient_CheckoutBranch(t *testing.T) {
 	type args struct {
-		name  string
-		force bool
+		name string
 	}
 	tests := []struct {
 		name    string
@@ -463,8 +466,7 @@ func TestClient_Checkout(t *testing.T) {
 			name:   "ok",
 			client: mockInit(),
 			args: args{
-				name:  "master",
-				force: false,
+				name: "master",
 			},
 			asserts: map[string][]string{
 				"branch": {"master", ""},
@@ -473,23 +475,10 @@ func TestClient_Checkout(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "ok_force",
-			client: mockInit(),
-			args: args{
-				name:  "master2",
-				force: true,
-			},
-			asserts: map[string][]string{
-				"branch": {"master2", ""},
-			},
-			wantErr: false,
-		},
-		{
 			name:   "ng",
 			client: mockInit(),
 			args: args{
-				name:  "master2",
-				force: false,
+				name: "master2",
 			},
 			asserts: map[string][]string{
 				"branch": {"master", ""},
@@ -500,7 +489,8 @@ func TestClient_Checkout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
-			if err := c.Checkout(tt.args.name, tt.args.force); (err != nil) != tt.wantErr {
+			if err := c.CheckoutBranch(tt.args.name); (err != nil) != tt.wantErr {
+				t.Log(c)
 				t.Errorf("Client.Checkout() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assertion(t, c, tt.asserts)
