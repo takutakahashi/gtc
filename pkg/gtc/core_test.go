@@ -66,39 +66,39 @@ func assertion(t *testing.T, c Client, asserts map[string][]string) {
 func mockOpt() ClientOpt {
 	dir, _ := ioutil.TempDir("/tmp", "gtc-")
 	return ClientOpt{
-		dirPath:     dir,
-		originURL:   "https://github.com/takutakahashi/gtc.git",
-		authorName:  "bob",
-		authorEmail: "bob@mail.com",
+		DirPath:     dir,
+		OriginURL:   "https://github.com/takutakahashi/gtc.git",
+		AuthorName:  "bob",
+		AuthorEmail: "bob@mail.com",
 	}
 }
 
 func mockOptBasicAuth() ClientOpt {
 	o := mockOpt()
-	o.originURL = "https://github.com/takutakahashi/gtc.git"
+	o.OriginURL = "https://github.com/takutakahashi/gtc.git"
 	auth := &http.BasicAuth{
 		Username: os.Getenv("TEST_BASIC_AUTH_USERNAME"),
 		Password: os.Getenv("TEST_BASIC_AUTH_PASSWORD"),
 	}
-	o.auth = auth
+	o.Auth = auth
 	return o
 }
 func mockOptSSHAuth() ClientOpt {
 	o := mockOpt()
-	o.originURL = "git@github.com:takutakahashi/gtc.git"
+	o.OriginURL = "git@github.com:takutakahashi/gtc.git"
 	sshKey, _ := ioutil.ReadFile(os.Getenv("TEST_SSH_PRIVATE_KEY_PATH"))
 	auth, _ := ssh.NewPublicKeys("git", sshKey, "")
 	auth.HostKeyCallback = ssh2.InsecureIgnoreHostKey()
-	o.auth = auth
+	o.Auth = auth
 	return o
 }
 
 func mockInit() Client {
 	c, _ := Init(mockOpt())
-	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, "file"), []byte{0, 0}, 0644)
+	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.DirPath, "file"), []byte{0, 0}, 0644)
 	c.Add("file")
-	os.MkdirAll(fmt.Sprintf("%s/dir", c.opt.dirPath), 0755)
-	os.WriteFile(fmt.Sprintf("%s/dir/dir_file", c.opt.dirPath), []byte{0, 0}, 0644)
+	os.MkdirAll(fmt.Sprintf("%s/dir", c.opt.DirPath), 0755)
+	os.WriteFile(fmt.Sprintf("%s/dir/dir_file", c.opt.DirPath), []byte{0, 0}, 0644)
 	c.Add("dir/dir_file")
 	c.Commit("init")
 	return c
@@ -111,7 +111,7 @@ func mockGtc() Client {
 func mockWithTags(tagNames []string) Client {
 	c := mockInit()
 	for i, name := range tagNames {
-		os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, name), []byte{0, 0, 0}, 0644)
+		os.WriteFile(fmt.Sprintf("%s/%s", c.opt.DirPath, name), []byte{0, 0, 0}, 0644)
 		c.Add(name)
 		c.commit(name, time.Now().AddDate(0, 0, i))
 		c.gitExec([]string{"tag", name})
@@ -122,13 +122,13 @@ func mockWithTags(tagNames []string) Client {
 func mockWithRemoteTags(tagNames []string) Client {
 	rc := mockInit()
 	opt := mockOpt()
-	opt.originURL = rc.opt.dirPath
+	opt.OriginURL = rc.opt.DirPath
 	c, err := Clone(opt)
 	if err != nil {
 		panic(err)
 	}
 	for i, name := range tagNames {
-		os.WriteFile(fmt.Sprintf("%s/%s", rc.opt.dirPath, name), []byte{0, 0, 0}, 0644)
+		os.WriteFile(fmt.Sprintf("%s/%s", rc.opt.DirPath, name), []byte{0, 0, 0}, 0644)
 		rc.Add(name)
 		rc.commit(name, time.Now().AddDate(0, 0, i))
 		rc.gitExec([]string{"tag", name})
@@ -139,7 +139,7 @@ func mockWithRemoteTags(tagNames []string) Client {
 func mockWithRemote() Client {
 	rc := mockInit()
 	opt := mockOpt()
-	opt.originURL = rc.opt.dirPath
+	opt.OriginURL = rc.opt.DirPath
 	c, err := Clone(opt)
 	if err != nil {
 		panic(err)
@@ -151,12 +151,12 @@ func mockWithRemote() Client {
 func mockWithBehindFromRemote() Client {
 	rc := mockInit()
 	opt := mockOpt()
-	opt.originURL = rc.opt.dirPath
+	opt.OriginURL = rc.opt.DirPath
 	c, err := Clone(opt)
 	if err != nil {
 		panic(err)
 	}
-	os.WriteFile(fmt.Sprintf("%s/%s", rc.opt.dirPath, "file2"), []byte{0, 0}, 0644)
+	os.WriteFile(fmt.Sprintf("%s/%s", rc.opt.DirPath, "file2"), []byte{0, 0}, 0644)
 	rc.Add("file2")
 	rc.Commit("commit")
 	return c
@@ -165,7 +165,7 @@ func mockWithBehindFromRemote() Client {
 
 func mockWithRemoteAndDirty() Client {
 	c := mockWithRemote()
-	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.dirPath, "file2"), []byte{0, 0}, 0644)
+	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.DirPath, "file2"), []byte{0, 0}, 0644)
 	c.Add("file2")
 	c.Commit("add")
 	return c
@@ -174,8 +174,8 @@ func mockWithRemoteAndDirty() Client {
 func mockWithSubmodule() Client {
 	c1 := mockInit()
 	c2 := mockInit()
-	c2.SubmoduleAdd("test", c1.opt.dirPath, nil)
-	os.WriteFile(fmt.Sprintf("%s/%s", c1.opt.dirPath, "file3"), []byte{0, 0}, 0644)
+	c2.SubmoduleAdd("test", c1.opt.DirPath, nil)
+	os.WriteFile(fmt.Sprintf("%s/%s", c1.opt.DirPath, "file3"), []byte{0, 0}, 0644)
 	c1.Add("file3")
 	c1.Commit("add")
 	return c2
@@ -223,7 +223,7 @@ func TestClone(t *testing.T) {
 				t.Errorf("Clone() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			files, err := os.ReadDir(got.opt.dirPath)
+			files, err := os.ReadDir(got.opt.DirPath)
 			if err != nil {
 				t.Errorf("Clone() error = %v", err)
 			}
@@ -255,7 +255,7 @@ func TestOpen(t *testing.T) {
 			name: "ok",
 			args: args{
 				opt: ClientOpt{
-					dirPath: c.opt.dirPath,
+					DirPath: c.opt.DirPath,
 				},
 			},
 			wantErr: false,
@@ -264,7 +264,7 @@ func TestOpen(t *testing.T) {
 			name: "ng",
 			args: args{
 				opt: ClientOpt{
-					dirPath: "/no_git_dir",
+					DirPath: "/no_git_dir",
 				},
 			},
 			wantErr: true,
@@ -594,13 +594,13 @@ func TestClient_Clean(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
-			if _, err := os.ReadDir(c.opt.dirPath); err != nil {
+			if _, err := os.ReadDir(c.opt.DirPath); err != nil {
 				t.Errorf("directory is not found. err: %v", err)
 			}
 			if err := c.Clean(); (err != nil) != tt.wantErr {
 				t.Errorf("Client.Clean() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if dir, err := os.ReadDir(c.opt.dirPath); err == nil {
+			if dir, err := os.ReadDir(c.opt.DirPath); err == nil {
 				t.Errorf("directory is not deleted. dir: %v", dir)
 			}
 		})
@@ -627,7 +627,7 @@ func TestClient_InitializedWithRemote(t *testing.T) {
 			name: "ng_no_git_dir",
 			client: Client{
 				opt: ClientOpt{
-					dirPath: "/no_git_dir",
+					DirPath: "/no_git_dir",
 				},
 			},
 			want: false,
@@ -658,7 +658,7 @@ func TestClient_Initialized(t *testing.T) {
 			name: "ng_no_git_dir",
 			client: Client{
 				opt: ClientOpt{
-					dirPath: "/no_git_dir",
+					DirPath: "/no_git_dir",
 				},
 			},
 			want: false,

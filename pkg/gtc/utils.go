@@ -13,7 +13,7 @@ import (
 )
 
 func (c *Client) addFile(path string, fileBlob []byte) error {
-	filePath := fmt.Sprintf("%s/%s", c.opt.dirPath, path)
+	filePath := fmt.Sprintf("%s/%s", c.opt.DirPath, path)
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (c *Client) GetLatestTagReference() (*plumbing.Reference, error) {
 func (c *Client) ReadFiles(paths, ignoreFile, ignoreDir []string) (map[string][]byte, error) {
 	result := map[string][]byte{}
 	for _, path := range paths {
-		buf, err := readFiles(fmt.Sprintf("%s/%s", c.opt.dirPath, path), ignoreFile, ignoreDir)
+		buf, err := readFiles(fmt.Sprintf("%s/%s", c.opt.DirPath, path), ignoreFile, ignoreDir)
 		if err != nil {
 			return nil, err
 		}
@@ -136,5 +136,5 @@ func readFiles(path string, ignoreFile, ignoreDir []string) (map[string][]byte, 
 }
 
 func (c *Client) AddClientAsSubmodule(name string, subc Client) error {
-	return c.SubmoduleAdd(name, subc.opt.dirPath, &subc.opt.auth)
+	return c.SubmoduleAdd(name, subc.opt.DirPath, &subc.opt.Auth)
 }

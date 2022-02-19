@@ -216,7 +216,7 @@ func TestClient_ReadFiles(t *testing.T) {
 				ignoreDir: []string{".git"},
 			},
 			want: map[string][]byte{
-				fmt.Sprintf("%s/file", c.opt.dirPath): {0, 0},
+				fmt.Sprintf("%s/file", c.opt.DirPath): {0, 0},
 			},
 			wantErr: false,
 		},
@@ -228,8 +228,8 @@ func TestClient_ReadFiles(t *testing.T) {
 				ignoreDir: []string{".git"},
 			},
 			want: map[string][]byte{
-				fmt.Sprintf("%s/file", c.opt.dirPath):         {0, 0},
-				fmt.Sprintf("%s/dir/dir_file", c.opt.dirPath): {0, 0},
+				fmt.Sprintf("%s/file", c.opt.DirPath):         {0, 0},
+				fmt.Sprintf("%s/dir/dir_file", c.opt.DirPath): {0, 0},
 			},
 			wantErr: false,
 		},
@@ -242,7 +242,7 @@ func TestClient_ReadFiles(t *testing.T) {
 				ignoreFile: []string{"dir_file"},
 			},
 			want: map[string][]byte{
-				fmt.Sprintf("%s/file", c.opt.dirPath): {0, 0},
+				fmt.Sprintf("%s/file", c.opt.DirPath): {0, 0},
 			},
 			wantErr: false,
 		},

@@ -15,11 +15,11 @@ import (
 )
 
 type ClientOpt struct {
-	dirPath     string
-	originURL   string
-	authorName  string
-	authorEmail string
-	auth        transport.AuthMethod
+	DirPath     string
+	OriginURL   string
+	AuthorName  string
+	AuthorEmail string
+	Auth        transport.AuthMethod
 }
 
 type Client struct {
@@ -28,7 +28,7 @@ type Client struct {
 }
 
 func Init(opt ClientOpt) (Client, error) {
-	r, err := git.PlainInit(opt.dirPath, false)
+	r, err := git.PlainInit(opt.DirPath, false)
 	if err != nil {
 		return Client{}, err
 	}
@@ -36,18 +36,18 @@ func Init(opt ClientOpt) (Client, error) {
 }
 
 func Open(opt ClientOpt) (Client, error) {
-	r, err := git.PlainOpen(opt.dirPath)
+	r, err := git.PlainOpen(opt.DirPath)
 	if err != nil {
 		return Client{}, errors.Wrap(err, "failed to open")
 	}
 	return Client{opt: opt, r: r}, nil
 }
 func Clone(opt ClientOpt) (Client, error) {
-	cloneOpt, err := cloneOpt(opt.originURL, &opt.auth)
+	cloneOpt, err := cloneOpt(opt.OriginURL, &opt.Auth)
 	if err != nil {
 		return Client{}, errors.Wrap(err, "failed to clone")
 	}
-	r, err := git.PlainClone(opt.dirPath, false, cloneOpt)
+	r, err := git.PlainClone(opt.DirPath, false, cloneOpt)
 	if err != nil {
 		return Client{}, errors.Wrap(err, "failed to clone")
 	}
@@ -67,7 +67,7 @@ func (c *Client) Add(filePath string) error {
 }
 
 func (c *Client) Clean() error {
-	return os.RemoveAll(c.opt.dirPath)
+	return os.RemoveAll(c.opt.DirPath)
 }
 
 func (c *Client) Initialized() bool {
@@ -90,7 +90,7 @@ func (c *Client) InitializedWithRemote() bool {
 func (c *Client) Fetch() error {
 	err := c.r.Fetch(&git.FetchOptions{
 		RemoteName: "origin",
-		Auth:       c.opt.auth,
+		Auth:       c.opt.Auth,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
@@ -109,8 +109,8 @@ func (c *Client) commit(message string, date time.Time) error {
 	}
 	_, err = w.Commit(message, &git.CommitOptions{
 		Author: &object.Signature{
-			Name:  c.opt.authorName,
-			Email: c.opt.authorEmail,
+			Name:  c.opt.AuthorName,
+			Email: c.opt.AuthorEmail,
 			When:  date,
 		},
 	})
@@ -120,7 +120,7 @@ func (c *Client) commit(message string, date time.Time) error {
 func (c *Client) Push() error {
 	return c.r.Push(&git.PushOptions{
 		RemoteName: "origin",
-		Auth:       c.opt.auth,
+		Auth:       c.opt.Auth,
 	})
 }
 
@@ -129,7 +129,7 @@ func (c *Client) Pull(branch string) error {
 	if err != nil {
 		return err
 	}
-	po, err := pullOpt("origin", &c.opt.auth)
+	po, err := pullOpt("origin", &c.opt.Auth)
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func (c *Client) SubmoduleSyncUpToDate(message string) error {
 
 func (c *Client) gitExec(commands []string) ([]string, error) {
 	cmd := exec.Command("git", commands...)
-	cmd.Dir = c.opt.dirPath
+	cmd.Dir = c.opt.DirPath
 	b, err := cmd.CombinedOutput()
 	return strings.Split(string(b), "\n"), err
 }
