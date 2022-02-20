@@ -259,3 +259,13 @@ func pullOpt(remoteName string, auth *transport.AuthMethod) (*git.PullOptions, e
 	}
 	return opt, nil
 }
+
+func (c *Client) CreateBranch(dst string, recreate bool) error {
+	if recreate {
+		if err := c.r.DeleteBranch(dst); err != nil && err != git.ErrBranchNotFound {
+			return err
+		}
+	}
+
+	return c.Checkout(dst, true)
+}

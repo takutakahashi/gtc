@@ -14,6 +14,7 @@ import (
 type gitCommand []string
 
 var currentBranch gitCommand = []string{"branch", "--show-current"}
+var listBranch gitCommand = []string{"branch", "-l"}
 var gitStatus gitCommand = []string{"status", "-s"}
 var gitDiffFile gitCommand = []string{"diff", "--name-only", "HEAD~"}
 var latestCommitMessage gitCommand = []string{"log", "-1", "--pretty=%B"}
@@ -48,10 +49,16 @@ func (c *Client) gatherInfo() (map[string][]string, error) {
 		result["submoduleCheck"] = nil
 	}
 	result["submoduleCheck"] = ret
+	ret, err = c.gitExec(listBranch)
+	if err != nil {
+		result["listBranch"] = nil
+	}
+	result["listBranch"] = ret
 	return result, nil
 }
 
 func assertion(t *testing.T, c Client, asserts map[string][]string) {
+	t.Log(c)
 	info, _ := c.gatherInfo()
 	for k, v := range asserts {
 		if !reflect.DeepEqual(info[k], v) {
@@ -737,6 +744,42 @@ func TestClient_SubmoduleSyncUpToDate(t *testing.T) {
 			c := tt.client
 			if err := c.SubmoduleSyncUpToDate(tt.args.message); (err != nil) != tt.wantErr {
 				t.Errorf("Client.SubmoduleSyncUpToDate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assertion(t, c, tt.asserts)
+		})
+	}
+}
+
+func TestClient_CreateBranch(t *testing.T) {
+	type args struct {
+		dst      string
+		recreate bool
+	}
+	tests := []struct {
+		name    string
+		client  Client
+		args    args
+		asserts map[string][]string
+		wantErr bool
+	}{
+		{
+			name:   "ok",
+			client: mockInit(),
+			args: args{
+				dst:      "newbranch",
+				recreate: true,
+			},
+			asserts: map[string][]string{
+				"listBranch": {"  master", "* newbranch", ""},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if err := c.CreateBranch(tt.args.dst, tt.args.recreate); (err != nil) != tt.wantErr {
+				t.Errorf("Client.CreateBranch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assertion(t, c, tt.asserts)
 		})
