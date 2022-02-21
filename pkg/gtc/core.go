@@ -185,8 +185,8 @@ func (c *Client) Checkout(name string, force bool) error {
 	})
 }
 
-func (c *Client) SubmoduleAdd(name, url string, auth *transport.AuthMethod) error {
-	if out, err := c.gitExec([]string{"submodule", "add", url, name}); err != nil {
+func (c *Client) SubmoduleAdd(name, url, revision string, auth *transport.AuthMethod) error {
+	if out, err := c.gitExec([]string{"submodule", "add", "-b", revision, url, name}); err != nil {
 		return errors.Wrapf(err, "stderr: %s", out)
 	}
 	return nil

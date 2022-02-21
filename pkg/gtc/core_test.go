@@ -191,7 +191,7 @@ func mockWithRemoteAndDirty() Client {
 func mockWithSubmodule() Client {
 	c1 := mockInit()
 	c2 := mockInit()
-	c2.SubmoduleAdd("test", c1.opt.DirPath, nil)
+	c2.SubmoduleAdd("test", c1.opt.DirPath, c1.opt.Revision, nil)
 	os.WriteFile(fmt.Sprintf("%s/%s", c1.opt.DirPath, "file3"), []byte{0, 0}, 0644)
 	c1.Add("file3")
 	c1.Commit("add")
@@ -527,9 +527,10 @@ func TestClient_Checkout(t *testing.T) {
 
 func TestClient_SubmoduleAdd(t *testing.T) {
 	type args struct {
-		name string
-		url  string
-		auth *transport.AuthMethod
+		name     string
+		url      string
+		revision string
+		auth     *transport.AuthMethod
 	}
 	tests := []struct {
 		name    string
@@ -542,17 +543,29 @@ func TestClient_SubmoduleAdd(t *testing.T) {
 			name:   "ok",
 			client: mockInit(),
 			args: args{
-				name: "test",
-				url:  "https://github.com/takutakahashi/gtc.git",
+				name:     "test",
+				url:      "https://github.com/takutakahashi/gtc.git",
+				revision: "main",
 			},
 			asserts: map[string][]string{},
 			wantErr: false,
+		},
+		{
+			name:   "ng",
+			client: mockInit(),
+			args: args{
+				name:     "test",
+				url:      "https://github.com/takutakahashi/gtc.git",
+				revision: "ng-branch",
+			},
+			asserts: map[string][]string{},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
-			if err := c.SubmoduleAdd(tt.args.name, tt.args.url, tt.args.auth); (err != nil) != tt.wantErr {
+			if err := c.SubmoduleAdd(tt.args.name, tt.args.url, tt.args.revision, tt.args.auth); (err != nil) != tt.wantErr {
 				t.Errorf("Client.SubmoduleAdd() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assertion(t, c, tt.asserts)

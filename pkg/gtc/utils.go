@@ -135,5 +135,5 @@ func readFiles(path string, ignoreFile, ignoreDir []string) (map[string][]byte, 
 }
 
 func (c *Client) AddClientAsSubmodule(name string, subc Client) error {
-	return c.SubmoduleAdd(name, subc.opt.OriginURL, &subc.opt.Auth)
+	return c.SubmoduleAdd(name, subc.opt.OriginURL, subc.opt.Revision, &subc.opt.Auth)
 }
