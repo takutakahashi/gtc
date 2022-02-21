@@ -70,11 +70,12 @@ func assertion(t *testing.T, c Client, asserts map[string][]string) {
 func mockOpt() ClientOpt {
 	dir, _ := ioutil.TempDir("/tmp", "gtc-")
 	return ClientOpt{
-		DirPath:     dir,
-		OriginURL:   "https://github.com/takutakahashi/gtc.git",
-		Revision:    "master",
-		AuthorName:  "bob",
-		AuthorEmail: "bob@mail.com",
+		DirPath:      dir,
+		CreateBranch: false,
+		OriginURL:    "https://github.com/takutakahashi/gtc.git",
+		Revision:     "master",
+		AuthorName:   "bob",
+		AuthorEmail:  "bob@mail.com",
 	}
 }
 func mockBranchOpt() ClientOpt {
@@ -85,6 +86,17 @@ func mockBranchOpt() ClientOpt {
 		Revision:    "test",
 		AuthorName:  "bob",
 		AuthorEmail: "bob@mail.com",
+	}
+}
+func mockNoExistsBranchOpt() ClientOpt {
+	dir, _ := ioutil.TempDir("/tmp", "gtc-")
+	return ClientOpt{
+		DirPath:      dir,
+		CreateBranch: true,
+		OriginURL:    "https://github.com/takutakahashi/gtc.git",
+		Revision:     "new-branch",
+		AuthorName:   "bob",
+		AuthorEmail:  "bob@mail.com",
 	}
 }
 
@@ -227,6 +239,16 @@ func TestClone(t *testing.T) {
 			},
 			asserts: map[string][]string{
 				"branch": {"test", ""},
+			},
+			wantErr: false,
+		},
+		{
+			name: "clone_with_create_branch",
+			args: args{
+				opt: mockNoExistsBranchOpt(),
+			},
+			asserts: map[string][]string{
+				"branch": {"new-branch", ""},
 			},
 			wantErr: false,
 		},

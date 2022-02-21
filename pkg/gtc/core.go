@@ -19,12 +19,13 @@ import (
 )
 
 type ClientOpt struct {
-	DirPath     string
-	OriginURL   string
-	Revision    string
-	AuthorName  string
-	AuthorEmail string
-	Auth        transport.AuthMethod
+	CreateBranch bool
+	DirPath      string
+	OriginURL    string
+	Revision     string
+	AuthorName   string
+	AuthorEmail  string
+	Auth         transport.AuthMethod
 }
 
 type Client struct {
@@ -79,10 +80,26 @@ func Clone(opt ClientOpt) (Client, error) {
 		Auth:              opt.Auth,
 	}
 	r, err := git.PlainClone(opt.DirPath, false, cloneOpt)
-	if err != nil {
+	if err == nil {
+		return Client{opt: opt, r: r}, nil
+	}
+	if err != nil && !opt.CreateBranch {
 		return Client{}, errors.Wrap(err, "failed to clone")
 	}
-	return Client{opt: opt, r: r}, nil
+	cloneOpt = &git.CloneOptions{
+		URL:               opt.OriginURL,
+		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
+		Auth:              opt.Auth,
+	}
+	r, err = git.PlainClone(opt.DirPath, false, cloneOpt)
+	if err == nil {
+		c := Client{opt: opt, r: r}
+		if err := c.Checkout(opt.Revision, true); err != nil {
+			return Client{}, err
+		}
+		return c, nil
+	}
+	return Client{}, errors.Wrap(err, "failed to clone")
 }
 
 func (c *Client) Add(filePath string) error {
