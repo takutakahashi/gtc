@@ -264,8 +264,9 @@ func TestClient_ReadFiles(t *testing.T) {
 
 func TestClient_AddClientAsSubmodule(t *testing.T) {
 	c1 := mockInit()
-	c2 := mockInit()
-	c2h, _ := c2.GetHash("master")
+	c2 := mockGtc()
+	c2h, _ := c2.GetHash("main")
+	c2t, _ := c2.GetLatestTagReference()
 	type args struct {
 		name string
 		subc Client
@@ -285,7 +286,7 @@ func TestClient_AddClientAsSubmodule(t *testing.T) {
 				subc: c2,
 			},
 			asserts: map[string][]string{
-				"submoduleCheck": {fmt.Sprintf(" %s base (heads/master)", c2h), ""},
+				"submoduleCheck": {fmt.Sprintf(" %s base (%s)", c2h, c2t.Name().Short()), ""},
 			},
 			wantErr: false,
 		},
@@ -297,7 +298,7 @@ func TestClient_AddClientAsSubmodule(t *testing.T) {
 				subc: c2,
 			},
 			asserts: map[string][]string{
-				"submoduleCheck": {fmt.Sprintf(" %s base (heads/master)", c2h), ""},
+				"submoduleCheck": {fmt.Sprintf(" %s base (%s)", c2h, c2t.Name().Short()), ""},
 			},
 			wantErr: true,
 		},
