@@ -21,6 +21,7 @@ import (
 type ClientOpt struct {
 	DirPath     string
 	OriginURL   string
+	Revision    string
 	AuthorName  string
 	AuthorEmail string
 	Auth        transport.AuthMethod
@@ -71,9 +72,11 @@ func Open(opt ClientOpt) (Client, error) {
 	return Client{opt: opt, r: r}, nil
 }
 func Clone(opt ClientOpt) (Client, error) {
-	cloneOpt, err := cloneOpt(opt.OriginURL, &opt.Auth)
-	if err != nil {
-		return Client{}, errors.Wrap(err, "failed to clone")
+	cloneOpt := &git.CloneOptions{
+		URL:               opt.OriginURL,
+		ReferenceName:     plumbing.NewBranchReferenceName(opt.Revision),
+		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
+		Auth:              opt.Auth,
 	}
 	r, err := git.PlainClone(opt.DirPath, false, cloneOpt)
 	if err != nil {
@@ -234,18 +237,6 @@ func (c *Client) gitExec(commands []string) ([]string, error) {
 	cmd.Dir = c.opt.DirPath
 	b, err := cmd.CombinedOutput()
 	return strings.Split(string(b), "\n"), err
-}
-
-func cloneOpt(url string, auth *transport.AuthMethod) (*git.CloneOptions, error) {
-	opt := &git.CloneOptions{
-		URL:               url,
-		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
-		Auth:              *auth,
-	}
-	if opt.Auth == nil {
-		logrus.Warn("no authentication parameter was found. no auth method will be used")
-	}
-	return opt, nil
 }
 
 func pullOpt(remoteName string, auth *transport.AuthMethod) (*git.PullOptions, error) {

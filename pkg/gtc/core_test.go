@@ -72,6 +72,17 @@ func mockOpt() ClientOpt {
 	return ClientOpt{
 		DirPath:     dir,
 		OriginURL:   "https://github.com/takutakahashi/gtc.git",
+		Revision:    "master",
+		AuthorName:  "bob",
+		AuthorEmail: "bob@mail.com",
+	}
+}
+func mockBranchOpt() ClientOpt {
+	dir, _ := ioutil.TempDir("/tmp", "gtc-")
+	return ClientOpt{
+		DirPath:     dir,
+		OriginURL:   "https://github.com/takutakahashi/gtc.git",
+		Revision:    "test",
 		AuthorName:  "bob",
 		AuthorEmail: "bob@mail.com",
 	}
@@ -79,6 +90,7 @@ func mockOpt() ClientOpt {
 
 func mockOptBasicAuth() ClientOpt {
 	o := mockOpt()
+	o.Revision = "main"
 	o.OriginURL = "https://github.com/takutakahashi/gtc.git"
 	auth, _ := GetAuth(os.Getenv("TEST_BASIC_AUTH_USERNAME"), os.Getenv("TEST_BASIC_AUTH_PASSWORD"), "")
 	o.Auth = auth
@@ -86,6 +98,7 @@ func mockOptBasicAuth() ClientOpt {
 }
 func mockOptSSHAuth() ClientOpt {
 	o := mockOpt()
+	o.Revision = "main"
 	o.OriginURL = "git@github.com:takutakahashi/gtc.git"
 	auth, _ := GetAuth("git", "", os.Getenv("TEST_SSH_PRIVATE_KEY_PATH"))
 	o.Auth = auth
@@ -103,7 +116,12 @@ func mockInit() Client {
 	return c
 }
 func mockGtc() Client {
-	c, _ := Clone(mockOpt())
+	opt := mockOpt()
+	opt.Revision = "main"
+	c, err := Clone(opt)
+	if err != nil {
+		panic(err)
+	}
 	return c
 }
 
@@ -185,18 +203,30 @@ func TestClone(t *testing.T) {
 		opt ClientOpt
 	}
 	noAuth := mockOpt()
+	noAuth.Revision = "main"
 	basicAuth := mockOptBasicAuth()
 	// sshAuth := mockOptSSHAuth()
 	tests := []struct {
 		name    string
 		args    args
 		want    Client
+		asserts map[string][]string
 		wantErr bool
 	}{
 		{
 			name: "clone_without_credential",
 			args: args{
 				opt: noAuth,
+			},
+			wantErr: false,
+		},
+		{
+			name: "clone_with_branch",
+			args: args{
+				opt: mockBranchOpt(),
+			},
+			asserts: map[string][]string{
+				"branch": {"test", ""},
 			},
 			wantErr: false,
 		},
@@ -222,20 +252,7 @@ func TestClone(t *testing.T) {
 				t.Errorf("Clone() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			files, err := os.ReadDir(got.opt.DirPath)
-			if err != nil {
-				t.Errorf("Clone() error = %v", err)
-			}
-			isGitRepo := false
-			for _, f := range files {
-				if f.Name() == ".git" {
-					isGitRepo = true
-					break
-				}
-			}
-			if !isGitRepo {
-				t.Errorf("Clone() failed. this dir is not git repository.")
-			}
+			assertion(t, got, tt.asserts)
 		})
 	}
 }
@@ -367,6 +384,7 @@ func TestClient_Push(t *testing.T) {
 		{
 			name:    "ok",
 			client:  mockWithRemoteAndDirty(),
+			asserts: map[string][]string{},
 			wantErr: false,
 		},
 		{
