@@ -58,7 +58,6 @@ func (c *Client) GetLatestTagReference() (*plumbing.Reference, error) {
 		if err != nil {
 			return err
 		}
-		fmt.Println(ref.Name(), commit.Author.When)
 		if latestTagDate.Before(commit.Author.When) {
 			latestTagDate = commit.Author.When
 			latestTagReference = ref
