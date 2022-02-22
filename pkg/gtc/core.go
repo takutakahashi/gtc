@@ -166,10 +166,13 @@ func (c *Client) commit(message string, date time.Time) error {
 }
 
 func (c *Client) Push() error {
-	return c.r.Push(&git.PushOptions{
+	if err := c.r.Push(&git.PushOptions{
 		RemoteName: "origin",
 		Auth:       c.opt.Auth,
-	})
+	}); err != nil && err != git.NoErrAlreadyUpToDate {
+		return err
+	}
+	return nil
 }
 
 func (c *Client) Pull(branch string) error {

@@ -412,7 +412,7 @@ func TestClient_Push(t *testing.T) {
 		{
 			name:    "up-to-date",
 			client:  mockWithRemote(),
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:    "no-remote",
