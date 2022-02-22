@@ -781,7 +781,7 @@ func TestClient_SubmoduleSyncUpToDate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "NG",
+			name:   "ok_clean",
 			client: mockInit(),
 			args: args{
 				message: "submodule update",
@@ -789,7 +789,7 @@ func TestClient_SubmoduleSyncUpToDate(t *testing.T) {
 			asserts: map[string][]string{
 				"latestCommitMessage": {"init", ""},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

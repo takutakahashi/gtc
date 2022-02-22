@@ -213,6 +213,7 @@ func (c *Client) SubmoduleAdd(name, url, revision string, auth *transport.AuthMe
 }
 
 func (c *Client) SubmoduleUpdate() error {
+	// TODO: use submodule.Update(&git.SubmoduleUpdateOptions{})
 	if _, err := c.gitExec([]string{"submodule", "init"}); err != nil {
 		return err
 	}
@@ -230,24 +231,37 @@ func (c *Client) SubmoduleSyncUpToDate(message string) error {
 	if err != nil {
 		return err
 	}
-	s, err := w.Submodules()
+	submodules, err := w.Submodules()
 	if err != nil {
 		return err
 	}
-	ss, err := s.Status()
-	if err != nil {
-		return err
-	}
-	if len(ss) == 0 {
-		return errors.New("no submodule found")
-	}
-	for _, status := range ss {
-		if err := c.Add(status.Path); err != nil {
+	isClean := true
+	for _, submodule := range submodules {
+		status, err := submodule.Status()
+		if err != nil {
 			return err
 		}
+		if !status.IsClean() {
+			isClean = false
+			break
+		}
 	}
-	if err := c.Commit(message); err != nil {
+	if isClean {
+		return nil
+	}
+	status, err := w.Status()
+	if err != nil {
 		return err
+	}
+	if !status.IsClean() {
+		if err := w.AddWithOptions(&git.AddOptions{
+			All: true,
+		}); err != nil {
+			return err
+		}
+		if err := c.Commit(message); err != nil {
+			return err
+		}
 	}
 	return nil
 }
