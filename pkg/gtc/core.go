@@ -231,35 +231,15 @@ func (c *Client) SubmoduleSyncUpToDate(message string) error {
 	if err != nil {
 		return err
 	}
-	submodules, err := w.Submodules()
-	if err != nil {
-		return err
-	}
-	isClean := true
-	for _, submodule := range submodules {
-		status, err := submodule.Status()
-		if err != nil {
-			return err
-		}
-		if !status.IsClean() {
-			isClean = false
-			break
-		}
-	}
-	if isClean {
-		return nil
-	}
 	status, err := w.Status()
 	if err != nil {
 		return err
 	}
 	if !status.IsClean() {
-		if err := w.AddWithOptions(&git.AddOptions{
-			All: true,
-		}); err != nil {
+		if err := c.Commit(message); err != nil {
 			return err
 		}
-		if err := c.Commit(message); err != nil {
+		if err := c.Push(); err != nil {
 			return err
 		}
 	}

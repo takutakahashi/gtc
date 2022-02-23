@@ -201,9 +201,9 @@ func mockWithRemoteAndDirty() Client {
 }
 
 func mockWithSubmodule() Client {
-	c1 := mockInit()
-	c2 := mockInit()
-	c2.SubmoduleAdd("test", c1.opt.DirPath, c1.opt.Revision, nil)
+	c1 := mockWithRemote()
+	c2 := mockWithRemote()
+	c2.AddClientAsSubmodule("test", c1)
 	os.WriteFile(fmt.Sprintf("%s/%s", c1.opt.DirPath, "file3"), []byte{0, 0}, 0644)
 	c1.Add("file3")
 	c1.Commit("add")
@@ -606,7 +606,7 @@ func TestClient_SubmoduleUpdate(t *testing.T) {
 			name:   "ok",
 			client: mockWithSubmodule(),
 			asserts: map[string][]string{
-				"status": {"A  .gitmodules", "AM test", ""},
+				"status": {"A  .gitmodules", "A  test", ""},
 			},
 			wantErr: false,
 		},
@@ -777,12 +777,13 @@ func TestClient_SubmoduleSyncUpToDate(t *testing.T) {
 			},
 			asserts: map[string][]string{
 				"latestCommitMessage": {"submodule update", ""},
+				"status":              {""},
 			},
 			wantErr: false,
 		},
 		{
 			name:   "ok_clean",
-			client: mockInit(),
+			client: mockWithRemote(),
 			args: args{
 				message: "submodule update",
 			},
