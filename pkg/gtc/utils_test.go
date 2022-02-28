@@ -311,3 +311,45 @@ func TestClient_AddClientAsSubmodule(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_MirrorBranch(t *testing.T) {
+	type args struct {
+		src string
+		dst string
+	}
+	tests := []struct {
+		name    string
+		client  Client
+		args    args
+		wantErr bool
+	}{
+		{
+			name:   "ok",
+			client: mockWithRemote(),
+			args: args{
+				src: "master",
+				dst: "master2",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if err := c.MirrorBranch(tt.args.src, tt.args.dst); (err != nil) != tt.wantErr {
+				t.Errorf("Client.MirrorBranch() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			srcout, err := c.gitExec([]string{"rev-parse", fmt.Sprintf("remotes/origin/%s", tt.args.src)})
+			if err != nil {
+				t.Errorf("Client.MirrorBranch() error = %v", err)
+			}
+			dstout, err := c.gitExec([]string{"rev-parse", fmt.Sprintf("remotes/origin/%s", tt.args.dst)})
+			if err != nil {
+				t.Errorf("Client.MirrorBranch() error = %v", err)
+			}
+			if !reflect.DeepEqual(srcout, dstout) {
+				t.Errorf("Assertion Error on Client.MirrorBranch(): src: %v, dst: %v", srcout, dstout)
+			}
+		})
+	}
+}

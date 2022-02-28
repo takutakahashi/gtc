@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
@@ -136,4 +138,16 @@ func readFiles(path string, ignoreFile, ignoreDir []string) (map[string][]byte, 
 
 func (c *Client) AddClientAsSubmodule(name string, subc Client) error {
 	return c.SubmoduleAdd(name, subc.opt.OriginURL, subc.opt.Revision, &subc.opt.Auth)
+}
+
+func (c *Client) MirrorBranch(src, dst string) error {
+	rs := config.RefSpec(fmt.Sprintf("refs/heads/%s:refs/heads/%s", src, dst))
+	if err := c.r.Push(&git.PushOptions{
+		RemoteName: "origin",
+		Auth:       c.opt.Auth,
+		RefSpecs:   []config.RefSpec{rs},
+	}); err != nil && err != git.NoErrAlreadyUpToDate {
+		return err
+	}
+	return nil
 }
