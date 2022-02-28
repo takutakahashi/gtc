@@ -236,6 +236,9 @@ func (c *Client) SubmoduleSyncUpToDate(message string) error {
 		return err
 	}
 	if !status.IsClean() {
+		if out, err := c.gitExec([]string{"add", "-A"}); err != nil {
+			return errors.Wrapf(err, "failed to add stage. %s", out)
+		}
 		if err := c.Commit(message); err != nil {
 			return err
 		}
