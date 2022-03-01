@@ -139,7 +139,7 @@ func (c *Client) AddClientAsSubmodule(name string, subc Client) error {
 }
 
 func (c *Client) MirrorBranch(src, dst string) error {
-	refs := fmt.Sprintf("refs/heads/%s:refs/heads/%s", src, dst)
+	refs := fmt.Sprintf("remotes/origin/%s:refs/heads/%s", src, dst)
 	if _, err := c.gitExec([]string{"push", "origin", refs}); err != nil {
 		return err
 	}
