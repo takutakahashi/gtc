@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
@@ -141,24 +139,17 @@ func (c *Client) AddClientAsSubmodule(name string, subc Client) error {
 }
 
 func (c *Client) MirrorBranch(src, dst string) error {
-	w, err := c.r.Worktree()
-	if err != nil {
+	refs := fmt.Sprintf("refs/heads/%s:refs/heads/%s", src, dst)
+	if _, err := c.gitExec([]string{"push", "origin", refs}); err != nil {
 		return err
 	}
-	if err := w.Pull(&git.PullOptions{
-		RemoteName:    "origin",
-		ReferenceName: plumbing.NewBranchReferenceName(src),
-		Auth:          c.opt.Auth,
-	}); err != nil && err != git.NoErrAlreadyUpToDate {
-		return err
-	}
-	rs := config.RefSpec(fmt.Sprintf("refs/heads/%s:refs/heads/%s", src, dst))
-	if err := c.r.Push(&git.PushOptions{
-		RemoteName: "origin",
-		Auth:       c.opt.Auth,
-		RefSpecs:   []config.RefSpec{rs},
-	}); err != nil && err != git.NoErrAlreadyUpToDate {
-		return err
-	}
+	// rs := config.RefSpec(refs)
+	// if err := c.r.Push(&git.PushOptions{
+	// 	RemoteName: "origin",
+	// 	Auth:       c.opt.Auth,
+	// 	RefSpecs:   []config.RefSpec{rs},
+	// }); err != nil && err != git.NoErrAlreadyUpToDate {
+	// 	return err
+	// }
 	return nil
 }

@@ -324,7 +324,7 @@ func TestClient_MirrorBranch(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "ok",
+			name:   "ok_from_local",
 			client: mockWithRemote(),
 			args: args{
 				src: "master",
@@ -336,6 +336,7 @@ func TestClient_MirrorBranch(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
+			t.Log(c)
 			if err := c.MirrorBranch(tt.args.src, tt.args.dst); (err != nil) != tt.wantErr {
 				t.Errorf("Client.MirrorBranch() error = %v, wantErr %v", err, tt.wantErr)
 			}
