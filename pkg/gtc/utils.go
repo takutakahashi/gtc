@@ -29,6 +29,11 @@ func (c *Client) CommitFiles(files map[string][]byte, message string) error {
 			return err
 		}
 	}
+	if clean, err := c.IsClean(); err == nil && clean {
+		return nil
+	} else if err != nil {
+		return err
+	}
 
 	return c.Commit(message)
 }

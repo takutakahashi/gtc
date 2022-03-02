@@ -277,3 +277,15 @@ func (c *Client) CreateBranch(dst string, recreate bool) error {
 
 	return c.Checkout(dst, true)
 }
+
+func (c *Client) IsClean() (bool, error) {
+	w, err := c.r.Worktree()
+	if err != nil {
+		return false, err
+	}
+	status, err := w.Status()
+	if err != nil {
+		return false, err
+	}
+	return status.IsClean(), nil
+}

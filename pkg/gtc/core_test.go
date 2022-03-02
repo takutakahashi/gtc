@@ -127,6 +127,11 @@ func mockInit() Client {
 	c.Commit("init")
 	return c
 }
+func mockWithUnstagedFile() Client {
+	c := mockInit()
+	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.DirPath, "file_mockwithunstagedfile"), []byte{0, 0}, 0644)
+	return c
+}
 func mockGtc() Client {
 	opt := mockOpt()
 	opt.Revision = "main"
@@ -836,6 +841,41 @@ func TestClient_CreateBranch(t *testing.T) {
 				t.Errorf("Client.CreateBranch() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assertion(t, c, tt.asserts)
+		})
+	}
+}
+
+func TestClient_IsClean(t *testing.T) {
+	tests := []struct {
+		name    string
+		client  Client
+		want    bool
+		wantErr bool
+	}{
+		{
+			name:    "clean",
+			client:  mockInit(),
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name:    "duty",
+			client:  mockWithUnstagedFile(),
+			want:    false,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			got, err := c.IsClean()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.IsClean() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("Client.IsClean() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
