@@ -197,9 +197,10 @@ func TestClient_GetLatestTagReference(t *testing.T) {
 func TestClient_ReadFiles(t *testing.T) {
 	c := mockInit()
 	type args struct {
-		paths      []string
-		ignoreFile []string
-		ignoreDir  []string
+		paths        []string
+		ignoreFile   []string
+		ignoreDir    []string
+		absolutePath bool
 	}
 	tests := []struct {
 		name    string
@@ -212,8 +213,9 @@ func TestClient_ReadFiles(t *testing.T) {
 			name:   "ok_single",
 			client: c,
 			args: args{
-				paths:     []string{"file"},
-				ignoreDir: []string{".git"},
+				paths:        []string{"file"},
+				ignoreDir:    []string{".git"},
+				absolutePath: true,
 			},
 			want: map[string][]byte{
 				fmt.Sprintf("%s/file", c.opt.DirPath): {0, 0},
@@ -221,11 +223,25 @@ func TestClient_ReadFiles(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:   "ok_single_noabs",
+			client: c,
+			args: args{
+				paths:        []string{"file"},
+				ignoreDir:    []string{".git"},
+				absolutePath: false,
+			},
+			want: map[string][]byte{
+				"file": {0, 0},
+			},
+			wantErr: false,
+		},
+		{
 			name:   "ok_directory",
 			client: c,
 			args: args{
-				paths:     []string{"."},
-				ignoreDir: []string{".git"},
+				paths:        []string{"."},
+				ignoreDir:    []string{".git"},
+				absolutePath: true,
 			},
 			want: map[string][]byte{
 				fmt.Sprintf("%s/file", c.opt.DirPath):         {0, 0},
@@ -234,15 +250,44 @@ func TestClient_ReadFiles(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:   "ok_directory_noabs",
+			client: c,
+			args: args{
+				paths:        []string{"."},
+				ignoreDir:    []string{".git"},
+				absolutePath: false,
+			},
+			want: map[string][]byte{
+				"file":         {0, 0},
+				"dir/dir_file": {0, 0},
+			},
+			wantErr: false,
+		},
+		{
 			name:   "ok_ignore_file",
 			client: c,
 			args: args{
-				paths:      []string{"."},
-				ignoreDir:  []string{".git"},
-				ignoreFile: []string{"dir_file"},
+				paths:        []string{"."},
+				ignoreDir:    []string{".git"},
+				ignoreFile:   []string{"dir_file"},
+				absolutePath: true,
 			},
 			want: map[string][]byte{
 				fmt.Sprintf("%s/file", c.opt.DirPath): {0, 0},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "ok_ignore_file_no_abs",
+			client: c,
+			args: args{
+				paths:        []string{"."},
+				ignoreDir:    []string{".git"},
+				ignoreFile:   []string{"dir_file"},
+				absolutePath: false,
+			},
+			want: map[string][]byte{
+				"file": {0, 0},
 			},
 			wantErr: false,
 		},
@@ -250,7 +295,7 @@ func TestClient_ReadFiles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
-			got, err := c.ReadFiles(tt.args.paths, tt.args.ignoreFile, tt.args.ignoreDir)
+			got, err := c.ReadFiles(tt.args.paths, tt.args.ignoreFile, tt.args.ignoreDir, tt.args.absolutePath)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.ReadFiles() error = %v, wantErr %v", err, tt.wantErr)
 				return

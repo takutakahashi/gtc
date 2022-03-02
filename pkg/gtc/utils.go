@@ -73,7 +73,7 @@ func (c *Client) GetLatestTagReference() (*plumbing.Reference, error) {
 	return latestTagReference, nil
 }
 
-func (c *Client) ReadFiles(paths, ignoreFile, ignoreDir []string) (map[string][]byte, error) {
+func (c *Client) ReadFiles(paths, ignoreFile, ignoreDir []string, absolutePath bool) (map[string][]byte, error) {
 	result := map[string][]byte{}
 	for _, path := range paths {
 		buf, err := readFiles(fmt.Sprintf("%s/%s", c.opt.DirPath, path), ignoreFile, ignoreDir)
@@ -81,7 +81,11 @@ func (c *Client) ReadFiles(paths, ignoreFile, ignoreDir []string) (map[string][]
 			return nil, err
 		}
 		for k, v := range buf {
-			result[k] = v
+			if absolutePath {
+				result[k] = v
+			} else {
+				result[strings.Replace(k, fmt.Sprintf("%s/", c.opt.DirPath), "", -1)] = v
+			}
 		}
 	}
 	return result, nil
