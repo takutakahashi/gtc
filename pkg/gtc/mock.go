@@ -21,7 +21,6 @@ type MockCommit struct {
 }
 
 type MockOpt struct {
-	DirPath       string
 	OriginURL     string
 	CurrentBranch string
 	Branches      []string
@@ -82,8 +81,8 @@ func NewMock(o MockOpt) (Mock, error) {
 }
 
 func (m *Mock) compose(o MockOpt) error {
-	for _, b := range o.Branches {
-		if err := m.C.Checkout(b, true); err != nil {
+	if m.RC != nil {
+		if err := m.C.Pull(o.CurrentBranch); err != nil {
 			return err
 		}
 	}
@@ -102,7 +101,10 @@ func (m *Mock) compose(o MockOpt) error {
 			return err
 		}
 	}
-
+	for _, b := range o.Branches {
+		m.C.CreateBranch(b, false)
+		m.C.Checkout(o.CurrentBranch, false)
+	}
 	// create staged file
 	for name, blob := range o.StagedFile {
 		os.MkdirAll(filepath.Dir(fmt.Sprintf("%s/%s", m.C.opt.DirPath, name)), 0755)
