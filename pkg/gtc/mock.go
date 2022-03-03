@@ -115,7 +115,7 @@ func (m *Mock) compose(o MockOpt) error {
 	}
 
 	// create unstaged file
-	for name, blob := range o.StagedFile {
+	for name, blob := range o.UnstagedFile {
 		os.MkdirAll(filepath.Dir(fmt.Sprintf("%s/%s", m.C.opt.DirPath, name)), 0755)
 		if err := os.WriteFile(fmt.Sprintf("%s/%s", m.C.opt.DirPath, name), blob, 0644); err != nil {
 			return err
@@ -174,12 +174,6 @@ func mockOptSSHAuth() ClientOpt {
 	return o
 }
 
-func newMockInitOpt() MockOpt {
-	return MockOpt{
-		CurrentBranch: "master",
-	}
-}
-
 func mockInit() Client {
 	m, err := NewMock(MockOpt{
 		CurrentBranch: "master",
@@ -187,8 +181,8 @@ func mockInit() Client {
 			{
 				Message: "init",
 				Files: map[string][]byte{
-					"file":         []byte{0, 0},
-					"dir/dir_file": []byte{0, 0},
+					"file":         {0, 0},
+					"dir/dir_file": {0, 0},
 				},
 			},
 		},
@@ -197,19 +191,39 @@ func mockInit() Client {
 		panic(err)
 	}
 	return m.C
-	c, _ := Init(mockOpt())
-	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.DirPath, "file"), []byte{0, 0}, 0644)
-	c.Add("file")
-	os.MkdirAll(fmt.Sprintf("%s/dir", c.opt.DirPath), 0755)
-	os.WriteFile(fmt.Sprintf("%s/dir/dir_file", c.opt.DirPath), []byte{0, 0}, 0644)
-	c.Add("dir/dir_file")
-	c.Commit("init")
-	return c
+}
+func mockWithRemote() Client {
+	m, err := NewMock(MockOpt{
+		Remote: &MockOpt{
+			CurrentBranch: "master",
+			Commits: []MockCommit{
+				{
+					Message: "init",
+					Files: map[string][]byte{
+						"file":         {0, 0},
+						"dir/dir_file": {0, 0},
+					},
+				},
+			},
+		},
+		CurrentBranch: "master",
+	})
+	if err != nil {
+		panic(err)
+	}
+	return m.C
 }
 func mockWithUnstagedFile() Client {
-	c := mockInit()
-	os.WriteFile(fmt.Sprintf("%s/%s", c.opt.DirPath, "file_mockwithunstagedfile"), []byte{0, 0}, 0644)
-	return c
+	m, err := NewMock(MockOpt{
+		CurrentBranch: "master",
+		UnstagedFile: map[string][]byte{
+			"file_mockwithunstagedfile": {0, 0},
+		},
+	})
+	if err != nil {
+		panic(err)
+	}
+	return m.C
 }
 func mockGtc() Client {
 	opt := mockOpt()
@@ -247,18 +261,6 @@ func mockWithRemoteTags(tagNames []string) Client {
 		rc.gitExec([]string{"tag", name})
 	}
 	return c
-}
-
-func mockWithRemote() Client {
-	rc := mockInit()
-	opt := mockOpt()
-	opt.OriginURL = rc.opt.DirPath
-	c, err := Clone(opt)
-	if err != nil {
-		panic(err)
-	}
-	return c
-
 }
 
 func mockWithBehindFromRemote() Client {

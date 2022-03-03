@@ -718,6 +718,7 @@ func TestClient_IsClean(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
 			got, err := c.IsClean()
+			t.Log(c)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.IsClean() error = %v, wantErr %v", err, tt.wantErr)
 				return
