@@ -126,6 +126,10 @@ func (m *Mock) compose(o MockOpt) error {
 	return nil
 }
 
+func (m *Mock) DirPath() string {
+	return m.C.opt.DirPath
+}
+
 func mockOpt() ClientOpt {
 	dir, _ := ioutil.TempDir("/tmp", "gtc-")
 	return ClientOpt{

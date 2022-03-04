@@ -76,3 +76,36 @@ func TestNewMock(t *testing.T) {
 		})
 	}
 }
+
+func TestMock_DirPath(t *testing.T) {
+	c := mockInit()
+	type fields struct {
+		C  Client
+		RC *Client
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   string
+	}{
+		{
+			name: "ok",
+			fields: fields{
+				C:  c,
+				RC: nil,
+			},
+			want: c.opt.DirPath,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := &Mock{
+				C:  tt.fields.C,
+				RC: tt.fields.RC,
+			}
+			if got := m.DirPath(); got != tt.want {
+				t.Errorf("Mock.DirPath() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
