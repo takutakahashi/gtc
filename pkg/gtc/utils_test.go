@@ -2,6 +2,7 @@ package gtc
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -358,6 +359,7 @@ func TestClient_AddClientAsSubmodule(t *testing.T) {
 }
 
 func TestClient_MirrorBranch(t *testing.T) {
+	os.Setenv("GTC_DEBUG", "true")
 	type args struct {
 		src string
 		dst string

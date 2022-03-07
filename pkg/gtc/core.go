@@ -250,6 +250,9 @@ func (c *Client) SubmoduleSyncUpToDate(message string) error {
 }
 
 func (c *Client) gitExec(commands []string) ([]string, error) {
+	if d := os.Getenv("GTC_DEBUG"); d == "true" {
+		logrus.Infof("execute command: git %v", commands)
+	}
 	cmd := exec.Command("git", commands...)
 	cmd.Dir = c.opt.DirPath
 	b, err := cmd.CombinedOutput()
