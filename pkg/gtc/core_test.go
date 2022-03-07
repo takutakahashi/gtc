@@ -4,8 +4,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-
-	"github.com/go-git/go-git/v5/plumbing/transport"
 )
 
 type gitCommand []string
@@ -406,7 +404,7 @@ func TestClient_SubmoduleAdd(t *testing.T) {
 		name     string
 		url      string
 		revision string
-		auth     *transport.AuthMethod
+		auth     *AuthMethod
 	}
 	tests := []struct {
 		name    string
@@ -436,6 +434,21 @@ func TestClient_SubmoduleAdd(t *testing.T) {
 			},
 			asserts: map[string][]string{},
 			wantErr: true,
+		},
+		{
+			name:   "ok_auth",
+			client: mockInit(),
+			args: args{
+				name:     "test",
+				url:      "https://github.com/takutakahashi/gtc.git",
+				revision: "main",
+				auth: &AuthMethod{
+					username: "takutakahashi",
+					password: os.Getenv("TEST_BASIC_AUTH_PASSWORD"),
+				},
+			},
+			asserts: map[string][]string{},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

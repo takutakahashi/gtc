@@ -1,7 +1,9 @@
 package gtc
 
 import (
+	"fmt"
 	"io/ioutil"
+	urlutil "net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -25,7 +27,7 @@ type ClientOpt struct {
 	Revision     string
 	AuthorName   string
 	AuthorEmail  string
-	Auth         transport.AuthMethod
+	Auth         AuthMethod
 }
 
 type Client struct {
@@ -33,28 +35,35 @@ type Client struct {
 	r   *git.Repository
 }
 
-func GetAuth(username, password, sshKeyPath string) (transport.AuthMethod, error) {
+type AuthMethod struct {
+	AuthMethod    transport.AuthMethod
+	username      string
+	password      string
+	sshPrivateKey []byte
+}
+
+func GetAuth(username, password, sshKeyPath string) (AuthMethod, error) {
 	if username != "" && password != "" {
 		auth := &http.BasicAuth{
 			Username: username,
 			Password: password,
 		}
-		return auth, nil
+		return AuthMethod{AuthMethod: auth, username: username, password: password}, nil
 	}
 	if username != "" && sshKeyPath != "" {
 		sshKey, err := ioutil.ReadFile(sshKeyPath)
 		if err != nil {
-			return nil, err
+			return AuthMethod{}, err
 		}
 		auth, err := ssh.NewPublicKeys(username, sshKey, "")
 		if err != nil {
-			return nil, err
+			return AuthMethod{}, err
 		}
 		// TODO: selectable later
 		auth.HostKeyCallback = ssh2.InsecureIgnoreHostKey()
-		return auth, nil
+		return AuthMethod{AuthMethod: auth, username: username, sshPrivateKey: sshKey}, nil
 	}
-	return nil, errors.New("no auth method was found")
+	return AuthMethod{}, errors.New("no auth method was found")
 }
 
 func Init(opt ClientOpt) (Client, error) {
@@ -77,7 +86,7 @@ func Clone(opt ClientOpt) (Client, error) {
 		URL:               opt.OriginURL,
 		ReferenceName:     plumbing.NewBranchReferenceName(opt.Revision),
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
-		Auth:              opt.Auth,
+		Auth:              opt.Auth.AuthMethod,
 	}
 	r, err := git.PlainClone(opt.DirPath, false, cloneOpt)
 	if err == nil {
@@ -89,7 +98,7 @@ func Clone(opt ClientOpt) (Client, error) {
 	cloneOpt = &git.CloneOptions{
 		URL:               opt.OriginURL,
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
-		Auth:              opt.Auth,
+		Auth:              opt.Auth.AuthMethod,
 	}
 	r, err = git.PlainClone(opt.DirPath, false, cloneOpt)
 	if err == nil {
@@ -138,7 +147,7 @@ func (c *Client) InitializedWithRemote() bool {
 func (c *Client) Fetch() error {
 	err := c.r.Fetch(&git.FetchOptions{
 		RemoteName: "origin",
-		Auth:       c.opt.Auth,
+		Auth:       c.opt.Auth.AuthMethod,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
@@ -168,7 +177,7 @@ func (c *Client) commit(message string, date time.Time) error {
 func (c *Client) Push() error {
 	if err := c.r.Push(&git.PushOptions{
 		RemoteName: "origin",
-		Auth:       c.opt.Auth,
+		Auth:       c.opt.Auth.AuthMethod,
 	}); err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
 	}
@@ -180,7 +189,7 @@ func (c *Client) Pull(branch string) error {
 	if err != nil {
 		return err
 	}
-	po, err := pullOpt("origin", &c.opt.Auth)
+	po, err := pullOpt("origin", &c.opt.Auth.AuthMethod)
 	if err != nil {
 		return err
 	}
@@ -205,8 +214,18 @@ func (c *Client) Checkout(name string, force bool) error {
 	})
 }
 
-func (c *Client) SubmoduleAdd(name, url, revision string, auth *transport.AuthMethod) error {
-	if out, err := c.gitExec([]string{"submodule", "add", "-b", revision, url, name}); err != nil {
+func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) error {
+	repositoryURL := url
+	if auth != nil {
+		if auth.username != "" && auth.password != "" {
+			l, err := urlutil.Parse(url)
+			if err != nil {
+				return err
+			}
+			repositoryURL = fmt.Sprintf("%s://%s:%s@%s%s", l.Scheme, auth.username, auth.password, l.Host, l.Path)
+		}
+	}
+	if out, err := c.gitExec([]string{"submodule", "add", "-b", revision, repositoryURL, name}); err != nil {
 		return errors.Wrapf(err, "stderr: %s", out)
 	}
 	return nil
