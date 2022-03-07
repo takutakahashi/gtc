@@ -136,12 +136,14 @@ func (c *Client) Initialized() bool {
 }
 
 func (c *Client) InitializedWithRemote() bool {
-	out, err := c.gitExec([]string{"remote", "show"})
-	if err != nil {
+	if c.r == nil {
 		return false
 	}
-	_, err = c.gitExec([]string{"remote", "show", out[0]})
-	return err == nil
+	err := c.r.Fetch(&git.FetchOptions{
+		RemoteName: "origin",
+		Auth:       c.opt.Auth.AuthMethod,
+	})
+	return err == nil || err == git.NoErrAlreadyUpToDate
 }
 
 func (c *Client) Fetch() error {
@@ -232,14 +234,19 @@ func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) erro
 }
 
 func (c *Client) SubmoduleUpdate() error {
-	// TODO: use submodule.Update(&git.SubmoduleUpdateOptions{})
-	if _, err := c.gitExec([]string{"submodule", "init"}); err != nil {
+	w, err := c.r.Worktree()
+	if err != nil {
 		return err
 	}
-	if _, err := c.gitExec([]string{"submodule", "update", "--remote"}); err != nil {
+	submodules, err := w.Submodules()
+	if err != nil {
 		return err
 	}
-	return nil
+	return submodules.Update(&git.SubmoduleUpdateOptions{
+		Init:    true,
+		NoFetch: false,
+		Auth:    c.opt.Auth.AuthMethod,
+	})
 }
 
 func (c *Client) SubmoduleSyncUpToDate(message string) error {

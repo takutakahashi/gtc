@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
@@ -148,17 +150,15 @@ func (c *Client) AddClientAsSubmodule(name string, subc Client) error {
 }
 
 func (c *Client) MirrorBranch(src, dst string) error {
-	refs := fmt.Sprintf("remotes/origin/%s:refs/heads/%s", src, dst)
-	if _, err := c.gitExec([]string{"push", "origin", refs}); err != nil {
+	refs := fmt.Sprintf("refs/remotes/origin/%s:refs/heads/%s", src, dst)
+	rs := config.RefSpec(refs)
+	if err := c.r.Push(&git.PushOptions{
+		RemoteName: "origin",
+		Auth:       c.opt.Auth.AuthMethod,
+		RefSpecs:   []config.RefSpec{rs},
+		Force:      true,
+	}); err != nil && err != git.NoErrAlreadyUpToDate {
 		return err
 	}
-	// rs := config.RefSpec(refs)
-	// if err := c.r.Push(&git.PushOptions{
-	// 	RemoteName: "origin",
-	// 	Auth:       c.opt.Auth,
-	// 	RefSpecs:   []config.RefSpec{rs},
-	// }); err != nil && err != git.NoErrAlreadyUpToDate {
-	// 	return err
-	// }
 	return nil
 }
