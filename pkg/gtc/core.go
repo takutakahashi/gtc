@@ -136,12 +136,14 @@ func (c *Client) Initialized() bool {
 }
 
 func (c *Client) InitializedWithRemote() bool {
-	out, err := c.gitExec([]string{"remote", "show"})
-	if err != nil {
+	if c.r == nil {
 		return false
 	}
-	_, err = c.gitExec([]string{"remote", "show", out[0]})
-	return err == nil
+	err := c.r.Fetch(&git.FetchOptions{
+		RemoteName: "origin",
+		Auth:       c.opt.Auth.AuthMethod,
+	})
+	return err == nil || err == git.NoErrAlreadyUpToDate
 }
 
 func (c *Client) Fetch() error {
