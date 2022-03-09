@@ -254,8 +254,13 @@ func (c *Client) SubmoduleUpdate() error {
 		if err != nil {
 			return err
 		}
+		ref, err := c.GetRevisionReferenceName(c.opt.Revision)
+		if err != nil {
+			return err
+		}
 		if err := sw.Pull(&git.PullOptions{
-			Auth: c.opt.Auth.AuthMethod,
+			Auth:          c.opt.Auth.AuthMethod,
+			ReferenceName: ref,
 		}); err != nil && err != git.NoErrAlreadyUpToDate {
 			return err
 		}
@@ -331,4 +336,16 @@ func (c *Client) IsClean() (bool, error) {
 		return false, err
 	}
 	return status.IsClean(), nil
+}
+
+func (c *Client) GetRevisionReferenceName(name string) (plumbing.ReferenceName, error) {
+	var ref plumbing.ReferenceName = plumbing.NewBranchReferenceName(name)
+	if _, err := c.r.ResolveRevision(plumbing.Revision(ref)); err == nil {
+		return ref, nil
+	}
+	ref = plumbing.NewTagReferenceName(name)
+	if _, err := c.r.ResolveRevision(plumbing.Revision(ref)); err == nil {
+		return ref, nil
+	}
+	return "", errors.New("no reference name was found")
 }
