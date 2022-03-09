@@ -4,6 +4,8 @@ import (
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 type gitCommand []string
@@ -748,6 +750,60 @@ func TestClient_IsClean(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("Client.IsClean() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_GetRevisionReferenceName(t *testing.T) {
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name    string
+		client  Client
+		args    args
+		want    plumbing.ReferenceName
+		wantErr bool
+	}{
+		{
+			name:   "ok_tag",
+			client: mockWithTags([]string{"v0.1"}),
+			args: args{
+				name: "v0.1",
+			},
+			want:    plumbing.NewTagReferenceName("v0.1"),
+			wantErr: false,
+		},
+		{
+			name:   "ok_branch",
+			client: mockInit(),
+			args: args{
+				name: "master",
+			},
+			want:    plumbing.NewBranchReferenceName("master"),
+			wantErr: false,
+		},
+		{
+			name:   "ng",
+			client: mockInit(),
+			args: args{
+				name: "v0.1",
+			},
+			want:    "",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			got, err := c.GetRevisionReferenceName(tt.args.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.GetRevisionReferenceName() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.GetRevisionReferenceName() = %v, want %v", got, tt.want)
 			}
 		})
 	}
