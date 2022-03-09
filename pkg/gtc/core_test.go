@@ -324,6 +324,16 @@ func TestClient_Pull(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name:   "NG_with_remote",
+			client: mockWithRemote(),
+			args:   args{branch: "master2"},
+			asserts: map[string][]string{
+				"branch": {"master", ""},
+				"status": {""},
+			},
+			wantErr: true,
+		},
 
 		// TODO: Add test cases.
 	}
