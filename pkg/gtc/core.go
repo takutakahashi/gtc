@@ -242,11 +242,25 @@ func (c *Client) SubmoduleUpdate() error {
 	if err != nil {
 		return err
 	}
-	return submodules.Update(&git.SubmoduleUpdateOptions{
-		Init:    true,
-		NoFetch: false,
-		Auth:    c.opt.Auth.AuthMethod,
-	})
+	for _, sub := range submodules {
+		if err := sub.Init(); err != nil && err != git.ErrSubmoduleAlreadyInitialized {
+			return err
+		}
+		sr, err := sub.Repository()
+		if err != nil {
+			return err
+		}
+		sw, err := sr.Worktree()
+		if err != nil {
+			return err
+		}
+		if err := sw.Pull(&git.PullOptions{
+			Auth: c.opt.Auth.AuthMethod,
+		}); err != nil && err != git.NoErrAlreadyUpToDate {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *Client) SubmoduleSyncUpToDate(message string) error {
