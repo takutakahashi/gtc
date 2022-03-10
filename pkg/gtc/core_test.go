@@ -475,8 +475,12 @@ func TestClient_SubmoduleAdd(t *testing.T) {
 }
 
 func TestClient_SubmoduleUpdate(t *testing.T) {
+	type args struct {
+		remote bool
+	}
 	tests := []struct {
 		name    string
+		args    args
 		client  Client
 		asserts map[string][]string
 		wantErr bool
@@ -484,6 +488,20 @@ func TestClient_SubmoduleUpdate(t *testing.T) {
 		{
 			name:   "ok",
 			client: mockWithSubmodule(),
+			args: args{
+				remote: false,
+			},
+			asserts: map[string][]string{
+				"status": {"A  .gitmodules", "A  test", ""},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "ok_remote",
+			client: mockWithSubmodule(),
+			args: args{
+				remote: true,
+			},
 			asserts: map[string][]string{
 				"status": {"A  .gitmodules", "A  test", ""},
 			},
@@ -492,6 +510,9 @@ func TestClient_SubmoduleUpdate(t *testing.T) {
 		{
 			name:   "still_ok",
 			client: mockInit(),
+			args: args{
+				remote: false,
+			},
 			asserts: map[string][]string{
 				"status": {""},
 			},
@@ -502,7 +523,7 @@ func TestClient_SubmoduleUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
 			t.Log(c)
-			if err := c.SubmoduleUpdate(); (err != nil) != tt.wantErr {
+			if err := c.SubmoduleUpdate(tt.args.remote); (err != nil) != tt.wantErr {
 				t.Errorf("Client.SubmoduleUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assertion(t, c, tt.asserts)

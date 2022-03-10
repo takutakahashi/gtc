@@ -233,7 +233,7 @@ func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) erro
 	return nil
 }
 
-func (c *Client) SubmoduleUpdate() error {
+func (c *Client) SubmoduleUpdate(remote bool) error {
 	w, err := c.r.Worktree()
 	if err != nil {
 		return err
@@ -254,22 +254,31 @@ func (c *Client) SubmoduleUpdate() error {
 		if err != nil {
 			return err
 		}
-		ref, err := c.GetRevisionReferenceName(c.opt.Revision)
-		if err != nil {
-			return err
-		}
-		if err := sw.Pull(&git.PullOptions{
-			Auth:          c.opt.Auth.AuthMethod,
-			ReferenceName: ref,
-		}); err != nil && err != git.NoErrAlreadyUpToDate {
-			return err
+		if remote {
+			if err := sw.Checkout(&git.CheckoutOptions{
+				Branch: plumbing.NewRemoteReferenceName("origin", c.opt.Revision),
+				Force:  true,
+			}); err != nil {
+				return errors.Wrap(err, "failed to checkout remote HEAD")
+			}
+		} else {
+			ref, err := c.GetRevisionReferenceName(c.opt.Revision)
+			if err != nil {
+				return err
+			}
+			if err := sw.Pull(&git.PullOptions{
+				Auth:          c.opt.Auth.AuthMethod,
+				ReferenceName: ref,
+			}); err != nil && err != git.NoErrAlreadyUpToDate {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
 func (c *Client) SubmoduleSyncUpToDate(message string) error {
-	if err := c.SubmoduleUpdate(); err != nil {
+	if err := c.SubmoduleUpdate(true); err != nil {
 		return err
 	}
 	w, err := c.r.Worktree()
