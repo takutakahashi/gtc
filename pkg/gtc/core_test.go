@@ -1,11 +1,13 @@
 package gtc
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
 
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/google/go-cmp/cmp"
 )
 
 type gitCommand []string
@@ -825,6 +827,63 @@ func TestClient_GetRevisionReferenceName(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Client.GetRevisionReferenceName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestClient_Info(t *testing.T) {
+
+	c := mockWithSubmodule()
+	p := c.opt.DirPath
+	hash, _ := c.GetHash("master")
+	w, _ := c.r.Worktree()
+	s, _ := w.Submodule("test")
+	sr, _ := s.Repository()
+	h, _ := sr.ResolveRevision(plumbing.Revision(plumbing.NewBranchReferenceName("master")))
+	tests := []struct {
+		name    string
+		client  Client
+		want    Info
+		wantErr bool
+	}{
+		{
+			name:   "ok",
+			client: c,
+			want: Info{
+				DirPath: p,
+				BranchHashes: map[string]string{
+					"master": hash,
+				},
+				Status: []string{
+					"A  .gitmodules",
+					"A  test",
+					"",
+				},
+				Submodules: map[string]Info{
+					"test": {
+						DirPath: fmt.Sprintf("%s/test", p),
+						BranchHashes: map[string]string{
+							"master": h.String(),
+						},
+						Submodules: map[string]Info{},
+						Status:     []string{""},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			got, err := c.Info()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.Info() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("Client.Info() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
