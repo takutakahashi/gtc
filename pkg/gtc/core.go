@@ -43,13 +43,11 @@ type AuthMethod struct {
 }
 
 type Info struct {
-	BranchHashes  map[string]string
-	CurrentBranch string
-	CurrentHash   string
-	Status        []string
-	Submodules    map[string]Info
-	Remote        *Info
-	DirPath       string
+	DirPath      string
+	BranchHashes map[string]string
+	Status       []string
+	Submodules   map[string]Info
+	Remote       *Info
 }
 
 func GetAuth(username, password, sshKeyPath string) (AuthMethod, error) {

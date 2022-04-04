@@ -1,11 +1,13 @@
 package gtc
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
 
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/google/go-cmp/cmp"
 )
 
 type gitCommand []string
@@ -831,6 +833,14 @@ func TestClient_GetRevisionReferenceName(t *testing.T) {
 }
 
 func TestClient_Info(t *testing.T) {
+
+	c := mockWithSubmodule()
+	p := c.opt.DirPath
+	hash, _ := c.GetHash("master")
+	w, _ := c.r.Worktree()
+	s, _ := w.Submodule("test")
+	sr, _ := s.Repository()
+	h, _ := sr.ResolveRevision(plumbing.Revision(plumbing.NewBranchReferenceName("master")))
 	tests := []struct {
 		name    string
 		client  Client
@@ -838,8 +848,29 @@ func TestClient_Info(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "ok",
-			client:  mockWithSubmodule(),
+			name:   "ok",
+			client: c,
+			want: Info{
+				DirPath: p,
+				BranchHashes: map[string]string{
+					"master": hash,
+				},
+				Status: []string{
+					"A  .gitmodules",
+					"A  test",
+					"",
+				},
+				Submodules: map[string]Info{
+					"test": {
+						DirPath: fmt.Sprintf("%s/test", p),
+						BranchHashes: map[string]string{
+							"master": h.String(),
+						},
+						Submodules: map[string]Info{},
+						Status:     []string{""},
+					},
+				},
+			},
 			wantErr: false,
 		},
 	}
@@ -847,13 +878,12 @@ func TestClient_Info(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
 			got, err := c.Info()
-			t.Log(got.Submodules)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.Info() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Client.Info() = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("Client.Info() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
