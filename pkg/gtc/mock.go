@@ -294,10 +294,29 @@ func mockWithRemoteAndDirty() Client {
 
 func mockWithSubmodule() Client {
 	c1 := mockWithRemote()
-	c2 := mockWithRemote()
+	m2, _ := NewMock(MockOpt{
+		CurrentBranch: "master",
+		Commits: []MockCommit{
+			{
+				Message: "test2",
+				Files: map[string][]byte{
+					"test2": {0, 1, 2, 3, 4},
+				},
+			},
+		},
+		Remote: &MockOpt{
+			CurrentBranch: "master",
+			Commits: []MockCommit{
+				{
+					Message: "test2",
+					Files: map[string][]byte{
+						"test2": {0, 1, 2, 3, 4},
+					},
+				},
+			},
+		},
+	})
+	c2 := m2.C
 	c2.AddClientAsSubmodule("test", c1)
-	os.WriteFile(fmt.Sprintf("%s/%s", c1.opt.DirPath, "file3"), []byte{0, 0}, 0644)
-	c1.Add("file3")
-	c1.Commit("add")
 	return c2
 }

@@ -829,3 +829,32 @@ func TestClient_GetRevisionReferenceName(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_Info(t *testing.T) {
+	tests := []struct {
+		name    string
+		client  Client
+		want    Info
+		wantErr bool
+	}{
+		{
+			name:    "ok",
+			client:  mockWithSubmodule(),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			got, err := c.Info()
+			t.Log(got.Submodules)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Client.Info() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Client.Info() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

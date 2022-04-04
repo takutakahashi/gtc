@@ -42,6 +42,16 @@ type AuthMethod struct {
 	sshPrivateKey []byte
 }
 
+type Info struct {
+	BranchHashes  map[string]string
+	CurrentBranch string
+	CurrentHash   string
+	Status        []string
+	Submodules    map[string]Info
+	Remote        *Info
+	DirPath       string
+}
+
 func GetAuth(username, password, sshKeyPath string) (AuthMethod, error) {
 	if username != "" && password != "" {
 		auth := &http.BasicAuth{
@@ -357,4 +367,51 @@ func (c *Client) GetRevisionReferenceName(name string) (plumbing.ReferenceName, 
 		return ref, nil
 	}
 	return "", errors.New("no reference name was found")
+}
+
+func (c *Client) Info() (Info, error) {
+	return info(c.r)
+}
+
+func info(r *git.Repository) (Info, error) {
+
+	blank, ret := Info{}, Info{
+		Submodules: map[string]Info{},
+	}
+	w, err := r.Worktree()
+	if err != nil {
+		return blank, err
+	}
+	ret.DirPath = w.Filesystem.Root()
+	branches, err := r.Branches()
+	if err != nil {
+		return blank, err
+	}
+	branchHashes := map[string]string{}
+	branches.ForEach(func(r *plumbing.Reference) error {
+		branchHashes[r.Name().Short()] = r.Hash().String()
+		return nil
+	})
+	status, err := w.Status()
+	if err != nil {
+		return blank, err
+	}
+	ss, err := w.Submodules()
+	if err != nil {
+		return blank, err
+	}
+	for _, s := range ss {
+		sr, err := s.Repository()
+		if err != nil {
+			return blank, err
+		}
+		si, err := info(sr)
+		if err != nil {
+			return blank, err
+		}
+		ret.Submodules[s.Config().Path] = si
+	}
+	ret.BranchHashes = branchHashes
+	ret.Status = strings.Split(status.String(), "\n")
+	return ret, nil
 }
