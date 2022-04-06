@@ -335,7 +335,7 @@ func TestClient_AddClientAsSubmodule(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:   "ng_dup",
+			name:   "ok_dup",
 			client: c1,
 			args: args{
 				name: "base",
@@ -344,7 +344,7 @@ func TestClient_AddClientAsSubmodule(t *testing.T) {
 			asserts: map[string][]string{
 				"status": {"A  .gitmodules", "A  base", ""},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
