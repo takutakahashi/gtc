@@ -439,6 +439,17 @@ func TestClient_SubmoduleAdd(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name:   "ok_already_exists",
+			client: mockWithSubmodule(),
+			args: args{
+				name:     "test",
+				url:      "https://github.com/takutakahashi/gtc.git",
+				revision: "main",
+			},
+			asserts: map[string][]string{},
+			wantErr: false,
+		},
+		{
 			name:   "ng",
 			client: mockInit(),
 			args: args{

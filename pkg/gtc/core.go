@@ -225,6 +225,13 @@ func (c *Client) Checkout(name string, force bool) error {
 }
 
 func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) error {
+	w, err := c.r.Worktree()
+	if err != nil {
+		return err
+	}
+	if _, err := w.Submodule(name); err != git.ErrSubmoduleNotFound {
+		return err
+	}
 	repositoryURL := url
 	if auth != nil {
 		if auth.username != "" && auth.password != "" {
