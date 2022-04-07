@@ -44,6 +44,7 @@ type AuthMethod struct {
 
 type Info struct {
 	DirPath      string
+	Current      string
 	BranchHashes map[string]string
 	Status       []string
 	Submodules   map[string]Info
@@ -270,6 +271,20 @@ func (c *Client) SubmoduleUpdate(remote bool) error {
 		}); err != nil {
 			return err
 		}
+		sr, err := sub.Repository()
+		if err != nil {
+			return err
+		}
+		sw, err := sr.Worktree()
+		if err != nil {
+			return err
+		}
+		if err := sw.Pull(&git.PullOptions{
+			Auth:  c.opt.Auth.AuthMethod,
+			Force: true,
+		}); err != nil && err != git.NoErrAlreadyUpToDate {
+			return errors.Wrap(err, "failed to pull submodule")
+		}
 	}
 	return nil
 }
@@ -365,6 +380,11 @@ func info(r *git.Repository) (Info, error) {
 	blank, ret := Info{}, Info{
 		Submodules: map[string]Info{},
 	}
+	currentHash, err := r.ResolveRevision(plumbing.Revision("HEAD"))
+	if err != nil {
+		return blank, err
+	}
+	ret.Current = currentHash.String()
 	w, err := r.Worktree()
 	if err != nil {
 		return blank, err

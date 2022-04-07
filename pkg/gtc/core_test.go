@@ -863,6 +863,7 @@ func TestClient_Info(t *testing.T) {
 			client: c,
 			want: Info{
 				DirPath: p,
+				Current: hash,
 				BranchHashes: map[string]string{
 					"master": hash,
 				},
@@ -873,6 +874,7 @@ func TestClient_Info(t *testing.T) {
 				},
 				Submodules: map[string]Info{
 					"test": {
+						Current: h.String(),
 						DirPath: fmt.Sprintf("%s/test", p),
 						BranchHashes: map[string]string{
 							"master": h.String(),
