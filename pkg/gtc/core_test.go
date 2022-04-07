@@ -287,6 +287,52 @@ func TestClient_Push(t *testing.T) {
 	}
 }
 
+func TestClient_PullAll(t *testing.T) {
+	tests := []struct {
+		name    string
+		client  Client
+		asserts map[string][]string
+		wantErr bool
+	}{
+		{
+			name:   "ok",
+			client: mockWithBehindFromRemote(),
+			asserts: map[string][]string{
+				"branch": {"master", ""},
+				"status": {""},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "up-to-date",
+			client: mockWithRemote(),
+			asserts: map[string][]string{
+				"branch": {"master", ""},
+				"status": {""},
+			},
+			wantErr: false,
+		},
+		{
+			name:   "NG",
+			client: mockInit(),
+			asserts: map[string][]string{
+				"branch": {"master", ""},
+				"status": {""},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := tt.client
+			if err := c.PullAll(); (err != nil) != tt.wantErr {
+				t.Errorf("Client.PullAll() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			assertion(t, c, tt.asserts)
+		})
+	}
+}
+
 func TestClient_Pull(t *testing.T) {
 	type args struct {
 		branch string

@@ -211,6 +211,22 @@ func (c *Client) Pull(branch string) error {
 	return nil
 }
 
+func (c *Client) PullAll() error {
+	w, err := c.r.Worktree()
+	if err != nil {
+		return err
+	}
+	po, err := pullOpt("origin", &c.opt.Auth.AuthMethod)
+	if err != nil {
+		return err
+	}
+	if err := w.Pull(po); err != nil && err != git.NoErrAlreadyUpToDate {
+		return err
+	}
+	return nil
+
+}
+
 // Checkout is the function switchng another refs.
 // When force is true, create and switch new branch if named branch is not defined.
 func (c *Client) Checkout(name string, force bool) error {
