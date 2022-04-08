@@ -265,8 +265,57 @@ func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) erro
 	}
 	return nil
 }
+func (c *Client) submoduleUseRemote() error {
+	w, err := c.r.Worktree()
+	if err != nil {
+		return err
+	}
+	submodules, err := w.Submodules()
+	if err != nil {
+		return err
+	}
+	for _, sub := range submodules {
+		sr, err := sub.Repository()
+		if err != nil {
+			return err
+		}
+		if err := sr.Fetch(&git.FetchOptions{
+			Auth:  c.opt.Auth.AuthMethod,
+			Force: true,
+		}); err != git.NoErrAlreadyUpToDate {
+			if err == storage.ErrReferenceHasChanged {
+				return c.submoduleUseRemote()
+			}
+			return errors.Wrap(err, "failed to pull submodule")
+		}
+		attachingRemoteBranch := plumbing.NewRemoteReferenceName("origin", c.opt.Revision)
+
+		sw, err := sr.Worktree()
+		if err != nil {
+			return err
+		}
+		attachingHash, err := sr.ResolveRevision(plumbing.Revision(attachingRemoteBranch))
+		if err != nil {
+			return errors.Wrap(err, "failed to resolve revision of remote branch")
+		}
+		if err := sw.Checkout(&git.CheckoutOptions{
+			Force: true,
+			Hash:  *attachingHash,
+		}); err != nil && err != git.NoErrAlreadyUpToDate {
+			if err == storage.ErrReferenceHasChanged {
+				return c.submoduleUseRemote()
+			}
+			return errors.Wrap(err, "failed to checkout submodule")
+		}
+	}
+	return nil
+
+}
 
 func (c *Client) SubmoduleUpdate(remote bool) error {
+	if remote {
+		return c.submoduleUseRemote()
+	}
 	w, err := c.r.Worktree()
 	if err != nil {
 		return err
