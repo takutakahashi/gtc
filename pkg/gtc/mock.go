@@ -130,6 +130,14 @@ func (m *Mock) DirPath() string {
 	return m.C.opt.DirPath
 }
 
+func (m *Mock) ClientOpt() ClientOpt {
+	return m.C.opt
+}
+
+func (m *Mock) RemoteClientOpt() ClientOpt {
+	return m.RC.opt
+}
+
 func mockOpt() ClientOpt {
 	dir, _ := ioutil.TempDir("/tmp", "gtc-")
 	return ClientOpt{
