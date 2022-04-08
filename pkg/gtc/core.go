@@ -15,6 +15,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/go-git/go-git/v5/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	ssh2 "golang.org/x/crypto/ssh"
@@ -263,12 +264,18 @@ func (c *Client) SubmoduleUpdate(remote bool) error {
 			Init: true,
 			Auth: c.opt.Auth.AuthMethod,
 		}); err != nil && err != git.ErrSubmoduleAlreadyInitialized {
+			if err == storage.ErrReferenceHasChanged {
+				return c.SubmoduleUpdate(remote)
+			}
 			return err
 		}
 		if err := sub.Update(&git.SubmoduleUpdateOptions{
 			Init: false,
 			Auth: c.opt.Auth.AuthMethod,
 		}); err != nil {
+			if err == storage.ErrReferenceHasChanged {
+				return c.SubmoduleUpdate(remote)
+			}
 			return err
 		}
 		sr, err := sub.Repository()
@@ -283,6 +290,9 @@ func (c *Client) SubmoduleUpdate(remote bool) error {
 			Auth:  c.opt.Auth.AuthMethod,
 			Force: true,
 		}); err != nil && err != git.NoErrAlreadyUpToDate {
+			if err == storage.ErrReferenceHasChanged {
+				return c.SubmoduleUpdate(remote)
+			}
 			return errors.Wrap(err, "failed to pull submodule")
 		}
 	}
