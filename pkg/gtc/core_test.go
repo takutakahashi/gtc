@@ -893,7 +893,7 @@ func TestClient_Info(t *testing.T) {
 
 	c := mockWithSubmodule()
 	p := c.opt.DirPath
-	hash, _ := c.GetHash("master")
+	hash, _ := c.GetHash("master", false)
 	w, _ := c.r.Worktree()
 	s, _ := w.Submodule("test")
 	sr, _ := s.Repository()

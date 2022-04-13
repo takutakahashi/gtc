@@ -77,7 +77,8 @@ func TestClient_CommitFiles(t *testing.T) {
 
 func TestClient_GetHash(t *testing.T) {
 	type args struct {
-		base string
+		base        string
+		referRemote bool
 	}
 	tests := []struct {
 		name    string
@@ -89,7 +90,8 @@ func TestClient_GetHash(t *testing.T) {
 			name:   "ok",
 			client: mockInit(),
 			args: args{
-				base: "master",
+				base:        "master",
+				referRemote: false,
 			},
 			wantErr: false,
 		},
@@ -97,7 +99,8 @@ func TestClient_GetHash(t *testing.T) {
 			name:   "ok_tag",
 			client: mockGtc(),
 			args: args{
-				base: "v0.1.0",
+				base:        "v0.1.0",
+				referRemote: false,
 			},
 			wantErr: false,
 		},
@@ -105,7 +108,8 @@ func TestClient_GetHash(t *testing.T) {
 			name:   "ok_revision",
 			client: mockGtc(),
 			args: args{
-				base: "6cac01a031dd3e38ed7fcb12bf6e4e4c08c0b3d7",
+				base:        "6cac01a031dd3e38ed7fcb12bf6e4e4c08c0b3d7",
+				referRemote: false,
 			},
 			wantErr: false,
 		},
@@ -113,7 +117,8 @@ func TestClient_GetHash(t *testing.T) {
 			name:   "ng_revision",
 			client: mockInit(),
 			args: args{
-				base: "6cac01a031dd3e38ed7fcb12bf6e4e4c08c0b3d7",
+				base:        "6cac01a031dd3e38ed7fcb12bf6e4e4c08c0b3d7",
+				referRemote: false,
 			},
 			wantErr: true,
 		},
@@ -121,15 +126,25 @@ func TestClient_GetHash(t *testing.T) {
 			name:   "ng_norev",
 			client: mockInit(),
 			args: args{
-				base: "no-rev",
+				base:        "no-rev",
+				referRemote: false,
 			},
 			wantErr: true,
+		},
+		{
+			name:   "ok_remote",
+			client: mockWithRemote(),
+			args: args{
+				base:        "test",
+				referRemote: true,
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
-			got, err := c.GetHash(tt.args.base)
+			got, err := c.GetHash(tt.args.base, tt.args.referRemote)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.GetHash() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -137,7 +152,11 @@ func TestClient_GetHash(t *testing.T) {
 			if tt.wantErr && err != nil {
 				return
 			}
-			if out, err := c.gitExec([]string{"rev-parse", tt.args.base}); err != nil || strings.Compare(out[0], got) != 0 {
+			base := tt.args.base
+			if tt.args.referRemote {
+				base = fmt.Sprintf("remotes/origin/%s", tt.args.base)
+			}
+			if out, err := c.gitExec([]string{"rev-parse", base}); err != nil || strings.Compare(out[0], got) != 0 {
 				t.Errorf("wrong revision. expected: %s, actual: %s", got, out[0])
 				return
 			}
@@ -146,9 +165,13 @@ func TestClient_GetHash(t *testing.T) {
 }
 
 func TestClient_GetLatestTagReference(t *testing.T) {
+	type args struct {
+		referRemote bool
+	}
 	tests := []struct {
 		name        string
 		client      Client
+		args        args
 		wantTagName string
 		want        *plumbing.Reference
 		wantErr     bool
@@ -156,30 +179,41 @@ func TestClient_GetLatestTagReference(t *testing.T) {
 		{
 			name:        "ok_multiple_tag",
 			client:      mockWithTags([]string{"test1", "test3", "test2"}),
+			args:        args{referRemote: false},
 			wantTagName: "test2",
 			wantErr:     false,
 		},
 		{
 			name:        "ok_single_tag",
 			client:      mockWithTags([]string{"test1"}),
+			args:        args{referRemote: false},
 			wantTagName: "test1",
 			wantErr:     false,
 		},
 		{
 			name:    "ng_no_tag",
 			client:  mockInit(),
+			args:    args{referRemote: false},
 			wantErr: true,
 		},
 		{
 			name:    "ng_only_remote_tag",
 			client:  mockWithRemoteTags([]string{"test1"}),
+			args:    args{referRemote: false},
 			wantErr: true,
+		},
+		{
+			name:        "ok_remote_tag",
+			client:      mockWithRemoteTags([]string{"test0", "test1"}),
+			args:        args{referRemote: true},
+			wantTagName: "test1",
+			wantErr:     false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
-			got, err := c.GetLatestTagReference()
+			got, err := c.GetLatestTagReference(tt.args.referRemote)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.GetLatestTagReference() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -187,7 +221,7 @@ func TestClient_GetLatestTagReference(t *testing.T) {
 			if err != nil && tt.wantErr {
 				return
 			}
-			hash, err := c.GetHash(tt.wantTagName)
+			hash, err := c.GetHash(tt.wantTagName, tt.args.referRemote)
 			if err != nil || !reflect.DeepEqual(got.Hash().String(), hash) {
 				t.Errorf("Client.GetLatestTagReference() = %v, want %v", got, tt.wantTagName)
 			}

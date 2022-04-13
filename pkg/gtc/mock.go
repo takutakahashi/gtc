@@ -209,6 +209,9 @@ func mockInit() Client {
 func mockWithRemote() Client {
 	m, err := NewMock(MockOpt{
 		Remote: &MockOpt{
+			Branches: []string{
+				"master", "test",
+			},
 			CurrentBranch: "master",
 			Commits: []MockCommit{
 				{
