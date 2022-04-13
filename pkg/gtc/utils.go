@@ -40,8 +40,12 @@ func (c *Client) CommitFiles(files map[string][]byte, message string) error {
 	return c.Commit(message)
 }
 
-func (c *Client) GetHash(base string) (string, error) {
-	if h, err := c.r.ResolveRevision(plumbing.Revision(plumbing.NewBranchReferenceName(base))); err == nil {
+func (c *Client) GetHash(base string, referRemote bool) (string, error) {
+	ref := plumbing.NewBranchReferenceName(base)
+	if referRemote {
+		ref = plumbing.NewRemoteReferenceName("origin", base)
+	}
+	if h, err := c.r.ResolveRevision(plumbing.Revision(ref)); err == nil {
 		return h.String(), nil
 	}
 	if h, err := c.r.ResolveRevision(plumbing.Revision(plumbing.NewTagReferenceName(base))); err == nil {
