@@ -1,7 +1,6 @@
 package gtc
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/pkg/errors"
 )
 
 func (c *Client) addFile(path string, fileBlob []byte) error {
@@ -57,7 +57,19 @@ func (c *Client) GetHash(base string, referRemote bool) (string, error) {
 	return "", errors.New("invalid base reference")
 }
 
-func (c *Client) GetLatestTagReference() (*plumbing.Reference, error) {
+func (c *Client) GetLatestTagReference(referRemote bool) (*plumbing.Reference, error) {
+	if referRemote {
+		if err := c.Fetch(); err != nil {
+			return nil, errors.Wrap(err, "failed to fetch")
+		}
+		w, err := c.r.Worktree()
+		if err != nil {
+			return nil, err
+		}
+		if err := w.Checkout(&git.CheckoutOptions{Branch: plumbing.NewRemoteReferenceName("origin", c.opt.Revision), Force: true}); err != nil {
+			return nil, errors.Wrap(err, "failed to checkout remote branch")
+		}
+	}
 	tags, err := c.r.Tags()
 	if err != nil {
 		return nil, err

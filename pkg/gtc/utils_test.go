@@ -165,9 +165,13 @@ func TestClient_GetHash(t *testing.T) {
 }
 
 func TestClient_GetLatestTagReference(t *testing.T) {
+	type args struct {
+		referRemote bool
+	}
 	tests := []struct {
 		name        string
 		client      Client
+		args        args
 		wantTagName string
 		want        *plumbing.Reference
 		wantErr     bool
@@ -175,30 +179,41 @@ func TestClient_GetLatestTagReference(t *testing.T) {
 		{
 			name:        "ok_multiple_tag",
 			client:      mockWithTags([]string{"test1", "test3", "test2"}),
+			args:        args{referRemote: false},
 			wantTagName: "test2",
 			wantErr:     false,
 		},
 		{
 			name:        "ok_single_tag",
 			client:      mockWithTags([]string{"test1"}),
+			args:        args{referRemote: false},
 			wantTagName: "test1",
 			wantErr:     false,
 		},
 		{
 			name:    "ng_no_tag",
 			client:  mockInit(),
+			args:    args{referRemote: false},
 			wantErr: true,
 		},
 		{
 			name:    "ng_only_remote_tag",
 			client:  mockWithRemoteTags([]string{"test1"}),
+			args:    args{referRemote: false},
 			wantErr: true,
+		},
+		{
+			name:        "ok_remote_tag",
+			client:      mockWithRemoteTags([]string{"test0", "test1"}),
+			args:        args{referRemote: true},
+			wantTagName: "test1",
+			wantErr:     false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.client
-			got, err := c.GetLatestTagReference()
+			got, err := c.GetLatestTagReference(tt.args.referRemote)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Client.GetLatestTagReference() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -206,7 +221,7 @@ func TestClient_GetLatestTagReference(t *testing.T) {
 			if err != nil && tt.wantErr {
 				return
 			}
-			hash, err := c.GetHash(tt.wantTagName, false)
+			hash, err := c.GetHash(tt.wantTagName, tt.args.referRemote)
 			if err != nil || !reflect.DeepEqual(got.Hash().String(), hash) {
 				t.Errorf("Client.GetLatestTagReference() = %v, want %v", got, tt.wantTagName)
 			}
