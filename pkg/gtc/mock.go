@@ -28,6 +28,7 @@ type MockOpt struct {
 	StagedFile    map[string][]byte
 	UnstagedFile  map[string][]byte
 	Remote        *MockOpt
+	RC            *Client
 }
 
 type SubmoduleOpt struct {
@@ -42,6 +43,9 @@ func NewMock(o MockOpt) (Mock, error) {
 			return Mock{}, err
 		}
 		mock.RC = &rm.C
+	}
+	if o.RC != nil {
+		mock.RC = o.RC
 	}
 	dir, _ := ioutil.TempDir("/tmp", "gtc-")
 	if mock.RC != nil {
