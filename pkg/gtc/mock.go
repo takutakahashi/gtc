@@ -1,6 +1,7 @@
 package gtc
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -140,6 +141,49 @@ func (m *Mock) ClientOpt() ClientOpt {
 
 func (m *Mock) RemoteClientOpt() ClientOpt {
 	return m.RC.opt
+}
+
+func (m *Mock) RandomCommitLocal(branch string, push bool) error {
+	c := m.C
+	if err := c.Checkout(branch, true); err != nil {
+		return err
+	}
+	filename := mkTestName()
+	if err := c.CommitFiles(map[string][]byte{
+		filename: []byte(filename),
+	}, filename); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Mock) RandomCommitRemote(branch string) error {
+	c := m.RC
+	if err := c.Checkout(branch, true); err != nil {
+		return err
+	}
+	filename := mkTestName()
+	if err := c.CommitFiles(map[string][]byte{
+		filename: []byte(filename),
+	}, filename); err != nil {
+		return err
+	}
+	return nil
+}
+
+func mkTestName() string {
+	const letters = "abcdefghijklmnopqrstuvwxyz0123456789"
+
+	b := make([]byte, 10)
+	if _, err := rand.Read(b); err != nil {
+		panic("error")
+	}
+
+	var result string
+	for _, v := range b {
+		result += string(letters[int(v)%len(letters)])
+	}
+	return fmt.Sprintf("unittest-%s", result)
 }
 
 func mockOpt() ClientOpt {
