@@ -145,7 +145,7 @@ func (m *Mock) RemoteClientOpt() ClientOpt {
 
 func (m *Mock) RandomCommitLocal(branch string, push bool) error {
 	c := m.C
-	if err := c.Checkout(branch, true); err != nil {
+	if err := c.Checkout(branch, false); err != nil {
 		return err
 	}
 	filename := mkTestName()
@@ -159,7 +159,7 @@ func (m *Mock) RandomCommitLocal(branch string, push bool) error {
 
 func (m *Mock) RandomCommitRemote(branch string) error {
 	c := m.RC
-	if err := c.Checkout(branch, true); err != nil {
+	if err := c.Checkout(branch, false); err != nil {
 		return err
 	}
 	filename := mkTestName()
