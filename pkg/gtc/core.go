@@ -260,7 +260,14 @@ func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) erro
 			repositoryURL = fmt.Sprintf("%s://%s:%s@%s%s", l.Scheme, auth.username, auth.password, l.Host, l.Path)
 		}
 	}
-	if out, err := c.gitExec([]string{"submodule", "add", "-b", revision, repositoryURL, name}); err != nil {
+	submoduleCmd := []string{"submodule", "add", "-b", revision, repositoryURL, name}
+	// this option is debug or CI only. please refer:
+	// https://bugs.launchpad.net/ubuntu/+source/git/+bug/1993586
+	// FIXME: use go-git only
+	if os.Getenv("GTC_SUBMODULE_PROTOCOL_FILE_ALLOW") == "true" {
+		submoduleCmd = append([]string{"-c", "protocol.file.allow=always"}, submoduleCmd...)
+	}
+	if out, err := c.gitExec(submoduleCmd); err != nil {
 		return errors.Wrapf(err, "stderr: %s", out)
 	}
 	return nil
