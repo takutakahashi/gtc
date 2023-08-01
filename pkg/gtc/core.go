@@ -261,7 +261,6 @@ func (c *Client) ReplaceToAuthURL(url string, auth *AuthMethod) error {
 	return nil
 }
 func (c *Client) SubmoduleUpdateAuth(path, url string, auth *AuthMethod) error {
-
 	if auth != nil {
 		if err := c.ReplaceToAuthURL(url, auth); err != nil {
 			return err
@@ -310,6 +309,9 @@ func (c *Client) submoduleUseRemote() error {
 		return err
 	}
 	for _, sub := range submodules {
+		if err := c.SubmoduleUpdateAuth(sub.Config().Name, sub.Config().URL, &c.opt.Auth); err != nil {
+			logrus.Error(err)
+		}
 		sr, err := sub.Repository()
 		if err != nil {
 			return err
@@ -360,6 +362,9 @@ func (c *Client) SubmoduleUpdate(remote bool) error {
 		return err
 	}
 	for _, sub := range submodules {
+		if err := c.SubmoduleUpdateAuth(sub.Config().Name, sub.Config().URL, &c.opt.Auth); err != nil {
+			logrus.Error(err)
+		}
 		if err := sub.Update(&git.SubmoduleUpdateOptions{
 			Init: true,
 			Auth: c.opt.Auth.AuthMethod,
