@@ -242,6 +242,40 @@ func (c *Client) Checkout(name string, force bool) error {
 	})
 }
 
+func (c *Client) ReplaceToAuthURL(url string, auth *AuthMethod) error {
+	if auth == nil {
+		return nil
+	}
+	l, err := urlutil.Parse(url)
+	if err != nil {
+		return err
+	}
+	newURL := fmt.Sprintf("%s://%s:%s@%s/", l.Scheme, auth.username, auth.password, l.Host)
+	insteadOf := fmt.Sprintf("%s://%s/", l.Scheme, l.Host)
+	out, err := c.gitExec([]string{"config", fmt.Sprintf("url.%s.insteadOf", newURL), insteadOf})
+	if err != nil {
+		logrus.Error(err)
+		logrus.Error(out)
+		return err
+	}
+	return nil
+}
+func (c *Client) SubmoduleUpdateAuth(path, url string, auth *AuthMethod) error {
+
+	if auth != nil {
+		if err := c.ReplaceToAuthURL(url, auth); err != nil {
+			return err
+		}
+		out, err := c.gitExec([]string{"submodule", "set-url", path, url})
+		if err != nil {
+			logrus.Error(err)
+			logrus.Error(out)
+			return err
+		}
+	}
+	return nil
+}
+
 func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) error {
 	w, err := c.r.Worktree()
 	if err != nil {
@@ -251,14 +285,8 @@ func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) erro
 		return err
 	}
 	repositoryURL := url
-	if auth != nil {
-		if auth.username != "" && auth.password != "" {
-			l, err := urlutil.Parse(url)
-			if err != nil {
-				return err
-			}
-			repositoryURL = fmt.Sprintf("%s://%s:%s@%s%s", l.Scheme, auth.username, auth.password, l.Host, l.Path)
-		}
+	if err := c.ReplaceToAuthURL(url, auth); err != nil {
+		return err
 	}
 	submoduleCmd := []string{"submodule", "add", "-b", revision, repositoryURL, name}
 	// this option is debug or CI only. please refer:
@@ -398,13 +426,18 @@ func (c *Client) SubmoduleSyncUpToDate(message string) error {
 }
 
 func (c *Client) gitExec(commands []string) ([]string, error) {
+	return c.exec("git", commands)
+}
+
+func (c *Client) exec(command string, opts []string) ([]string, error) {
 	if d := os.Getenv("GTC_DEBUG"); d == "true" {
-		logrus.Infof("execute command: git %v", commands)
+		logrus.Infof("execute command: %v %v", command, opts)
 	}
-	cmd := exec.Command("git", commands...)
+	cmd := exec.Command(command, opts...)
 	cmd.Dir = c.opt.DirPath
 	b, err := cmd.CombinedOutput()
 	return strings.Split(string(b), "\n"), err
+
 }
 
 func pullOpt(remoteName string, auth *transport.AuthMethod) (*git.PullOptions, error) {
