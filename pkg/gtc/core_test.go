@@ -914,8 +914,8 @@ func TestClient_Info(t *testing.T) {
 					"master": hash,
 				},
 				Status: []string{
-					"A  .gitmodules",
 					"A  test",
+					"A  .gitmodules",
 					"",
 				},
 				Submodules: map[string]Info{
