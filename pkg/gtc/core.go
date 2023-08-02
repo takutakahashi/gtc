@@ -258,6 +258,10 @@ func (c *Client) ReplaceToAuthURL(url string, auth *AuthMethod) error {
 		logrus.Error(out)
 		return err
 	}
+	if os.Getenv("GTC_DEBUG") == "true" {
+		out, _ := c.gitExec([]string{"config", "--list"})
+		logrus.Info(out)
+	}
 	return nil
 }
 func (c *Client) SubmoduleUpdateAuth(path, url string, auth *AuthMethod) error {
@@ -265,11 +269,20 @@ func (c *Client) SubmoduleUpdateAuth(path, url string, auth *AuthMethod) error {
 		if err := c.ReplaceToAuthURL(url, auth); err != nil {
 			return err
 		}
-		out, err := c.gitExec([]string{"submodule", "set-url", path, url})
+		l, err := urlutil.Parse(url)
+		if err != nil {
+			return err
+		}
+		newURL := fmt.Sprintf("%s://%s%s", l.Scheme, l.Host, l.Path)
+		out, err := c.gitExec([]string{"submodule", "set-url", path, newURL})
 		if err != nil {
 			logrus.Error(err)
 			logrus.Error(out)
 			return err
+		}
+		if os.Getenv("GTC_DEBUG") == "true" {
+			out, _ := c.exec("cat", []string{".gitmodules"})
+			logrus.Info(out)
 		}
 	}
 	return nil
@@ -436,7 +449,7 @@ func (c *Client) gitExec(commands []string) ([]string, error) {
 
 func (c *Client) exec(command string, opts []string) ([]string, error) {
 	if d := os.Getenv("GTC_DEBUG"); d == "true" {
-		logrus.Infof("execute command: %v %v", command, opts)
+		logrus.Infof("execute command in %s: %v %v", c.opt.DirPath, command, opts)
 	}
 	cmd := exec.Command(command, opts...)
 	cmd.Dir = c.opt.DirPath
