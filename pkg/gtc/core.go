@@ -287,6 +287,13 @@ func (c *Client) SubmoduleUpdateAuth(path, url string, auth *AuthMethod) error {
 	}
 	return nil
 }
+func mkAuthMethodInjectedURL(url string, auth *AuthMethod) (string, error) {
+	l, err := urlutil.Parse(url)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s://%s:%s@%s%s", l.Scheme, auth.username, auth.password, l.Host, l.Path), nil
+}
 
 func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) error {
 	w, err := c.r.Worktree()
@@ -296,8 +303,8 @@ func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) erro
 	if _, err := w.Submodule(name); err != git.ErrSubmoduleNotFound {
 		return err
 	}
-	repositoryURL := url
-	if err := c.ReplaceToAuthURL(url, auth); err != nil {
+	repositoryURL, err := mkAuthMethodInjectedURL(url, auth)
+	if err != nil {
 		return err
 	}
 	submoduleCmd := []string{"submodule", "add", "-b", revision, repositoryURL, name}
@@ -309,6 +316,9 @@ func (c *Client) SubmoduleAdd(name, url, revision string, auth *AuthMethod) erro
 	}
 	if out, err := c.gitExec(submoduleCmd); err != nil {
 		return errors.Wrapf(err, "stderr: %s", out)
+	}
+	if err := c.SubmoduleUpdateAuth(name, url, auth); err != nil {
+		return err
 	}
 	return nil
 }
