@@ -2,7 +2,7 @@ package gtc
 
 import (
 	"fmt"
-	"io/ioutil"
+	"net/url"
 	urlutil "net/url"
 	"os"
 	"os/exec"
@@ -28,7 +28,16 @@ type ClientOpt struct {
 	Revision     string
 	AuthorName   string
 	AuthorEmail  string
+	ReadOnly     bool
+	UseGitHub    bool
+	GitHubOpt    *GitHubOpt
 	Auth         AuthMethod
+}
+
+type GitHubOpt struct {
+	BaseURL string
+	Org     string
+	Repo    string
 }
 
 type Client struct {
@@ -61,7 +70,7 @@ func GetAuth(username, password, sshKeyPath string) (AuthMethod, error) {
 		return AuthMethod{AuthMethod: auth, username: username, password: password}, nil
 	}
 	if username != "" && sshKeyPath != "" {
-		sshKey, err := ioutil.ReadFile(sshKeyPath)
+		sshKey, err := os.ReadFile(sshKeyPath)
 		if err != nil {
 			return AuthMethod{}, err
 		}
@@ -77,6 +86,24 @@ func GetAuth(username, password, sshKeyPath string) (AuthMethod, error) {
 }
 
 func Init(opt ClientOpt) (Client, error) {
+	if opt.UseGitHub {
+		u, err := url.Parse(opt.OriginURL)
+		if err != nil {
+			return Client{}, err
+		}
+		// ex: github.com/takutakahashi/test.git
+		ss := strings.Split(u.Path, "/")
+		org := ss[0]
+		repo := ss[1]
+		if repo[:len(repo)-4] == ".git" {
+			repo = strings.Replace(repo, ".git", "", 1)
+		}
+		opt.GitHubOpt = &GitHubOpt{
+			BaseURL: fmt.Sprintf("https://%s", u.Host),
+			Org:     org,
+			Repo:    repo,
+		}
+	}
 	r, err := git.PlainInit(opt.DirPath, false)
 	if err != nil {
 		return Client{}, err
@@ -288,6 +315,9 @@ func (c *Client) SubmoduleUpdateAuth(path, url string, auth *AuthMethod) error {
 	return nil
 }
 func mkAuthMethodInjectedURL(url string, auth *AuthMethod) (string, error) {
+	if auth == nil {
+		return url, nil
+	}
 	l, err := urlutil.Parse(url)
 	if err != nil {
 		return "", err
