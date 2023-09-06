@@ -893,11 +893,31 @@ func TestClient_Info(t *testing.T) {
 
 	c := mockWithSubmodule()
 	p := c.opt.DirPath
-	hash, _ := c.GetHash("master", false)
-	w, _ := c.r.Worktree()
-	s, _ := w.Submodule("test")
-	sr, _ := s.Repository()
-	h, _ := sr.ResolveRevision(plumbing.Revision(plumbing.NewBranchReferenceName("master")))
+	hash, err := c.GetHash("master", false)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	w, err := c.r.Worktree()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	s, err := w.Submodule("test")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	sr, err := s.Repository()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	h, err := sr.ResolveRevision(plumbing.Revision(plumbing.NewBranchReferenceName("master")))
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	tests := []struct {
 		name    string
 		client  Client
