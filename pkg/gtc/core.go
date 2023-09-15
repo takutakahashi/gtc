@@ -288,9 +288,15 @@ func (c *Client) SubmoduleUpdateAuth(path, url string, auth *AuthMethod) error {
 	return nil
 }
 func mkAuthMethodInjectedURL(url string, auth *AuthMethod) (string, error) {
+	if auth == nil || auth.username == "" || auth.password == "" {
+		return url, nil
+	}
 	l, err := urlutil.Parse(url)
 	if err != nil {
 		return "", err
+	}
+	if l.Scheme == "file" {
+		return url, nil
 	}
 	return fmt.Sprintf("%s://%s:%s@%s%s", l.Scheme, auth.username, auth.password, l.Host, l.Path), nil
 }
