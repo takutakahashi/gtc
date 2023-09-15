@@ -268,11 +268,14 @@ func (c *Client) SubmoduleUpdateAuth(path, url string, auth *AuthMethod) error {
 	if err != nil {
 		return err
 	}
-	if auth != nil {
+	if auth != nil && auth.username != "" && auth.password != "" {
 		if err := c.ReplaceToAuthURL(l, auth); err != nil {
 			return err
 		}
 		newURL := fmt.Sprintf("%s://%s%s", l.Scheme, l.Host, l.Path)
+		if l.Scheme == "" || l.Host == "" {
+			newURL = url
+		}
 		out, err := c.gitExec([]string{"submodule", "set-url", path, newURL})
 		if err != nil {
 			logrus.Error(err)
