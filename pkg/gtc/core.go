@@ -242,16 +242,15 @@ func (c *Client) Checkout(name string, force bool) error {
 	})
 }
 
-func (c *Client) ReplaceToAuthURL(url string, auth *AuthMethod) error {
+func (c *Client) ReplaceToAuthURL(url *urlutil.URL, auth *AuthMethod) error {
 	if auth == nil {
 		return nil
 	}
-	l, err := urlutil.Parse(url)
-	if err != nil {
-		return err
+	if url == nil || url.Scheme == "file" {
+		return nil
 	}
-	newURL := fmt.Sprintf("%s://%s:%s@%s/", l.Scheme, auth.username, auth.password, l.Host)
-	insteadOf := fmt.Sprintf("%s://%s/", l.Scheme, l.Host)
+	newURL := fmt.Sprintf("%s://%s:%s@%s/", url.Scheme, auth.username, auth.password, url.Host)
+	insteadOf := fmt.Sprintf("%s://%s/", url.Scheme, url.Host)
 	out, err := c.gitExec([]string{"config", fmt.Sprintf("url.%s.insteadOf", newURL), insteadOf})
 	if err != nil {
 		logrus.Error(err)
@@ -265,12 +264,12 @@ func (c *Client) ReplaceToAuthURL(url string, auth *AuthMethod) error {
 	return nil
 }
 func (c *Client) SubmoduleUpdateAuth(path, url string, auth *AuthMethod) error {
+	l, err := urlutil.Parse(url)
+	if err != nil {
+		return err
+	}
 	if auth != nil {
-		if err := c.ReplaceToAuthURL(url, auth); err != nil {
-			return err
-		}
-		l, err := urlutil.Parse(url)
-		if err != nil {
+		if err := c.ReplaceToAuthURL(l, auth); err != nil {
 			return err
 		}
 		newURL := fmt.Sprintf("%s://%s%s", l.Scheme, l.Host, l.Path)
