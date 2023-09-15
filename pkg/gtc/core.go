@@ -246,7 +246,7 @@ func (c *Client) ReplaceToAuthURL(url *urlutil.URL, auth *AuthMethod) error {
 	if auth == nil {
 		return nil
 	}
-	if url == nil || url.Scheme == "file" {
+	if url == nil || url.Scheme == "" || url.Host == "" {
 		return nil
 	}
 	newURL := fmt.Sprintf("%s://%s:%s@%s/", url.Scheme, auth.username, auth.password, url.Host)
@@ -294,7 +294,7 @@ func mkAuthMethodInjectedURL(url string, auth *AuthMethod) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if l.Scheme == "file" {
+	if l.Scheme == "" || l.Host == "" {
 		return url, nil
 	}
 	return fmt.Sprintf("%s://%s:%s@%s%s", l.Scheme, auth.username, auth.password, l.Host, l.Path), nil

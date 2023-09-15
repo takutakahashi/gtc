@@ -51,7 +51,7 @@ func NewMock(o MockOpt) (Mock, error) {
 	dir, _ := os.MkdirTemp("/tmp", "gtc-")
 	if mock.RC != nil {
 		opt := ClientOpt{
-			DirPath:      fmt.Sprintf("file://%s", dir),
+			DirPath:      dir,
 			OriginURL:    mock.RC.opt.DirPath,
 			CreateBranch: false,
 			Revision:     o.CurrentBranch,
