@@ -68,7 +68,8 @@ func assertion(t *testing.T, c Client, asserts map[string][]string) {
 
 func TestClone(t *testing.T) {
 	type args struct {
-		opt ClientOpt
+		opt     ClientOpt
+		shallow bool
 	}
 	noAuth := mockOpt()
 	noAuth.Revision = "main"
@@ -84,7 +85,8 @@ func TestClone(t *testing.T) {
 		{
 			name: "clone_without_credential",
 			args: args{
-				opt: noAuth,
+				opt:     noAuth,
+				shallow: false,
 			},
 			wantErr: false,
 		},
@@ -101,7 +103,8 @@ func TestClone(t *testing.T) {
 		{
 			name: "clone_with_create_branch",
 			args: args{
-				opt: mockNoExistsBranchOpt(),
+				opt:     mockNoExistsBranchOpt(),
+				shallow: false,
 			},
 			asserts: map[string][]string{
 				"branch": {"new-branch", ""},
@@ -111,7 +114,8 @@ func TestClone(t *testing.T) {
 		{
 			name: "clone_basic_auth",
 			args: args{
-				opt: basicAuth,
+				opt:     basicAuth,
+				shallow: false,
 			},
 			wantErr: false,
 		},
@@ -125,7 +129,7 @@ func TestClone(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Clone(tt.args.opt)
+			got, err := Clone(tt.args.opt, tt.args.shallow)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Clone() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -58,7 +58,7 @@ func NewMock(o MockOpt) (Mock, error) {
 			AuthorName:   "bob",
 			AuthorEmail:  "bob@mail.com",
 		}
-		c, err := Clone(opt)
+		c, err := Clone(opt, false)
 		if err != nil {
 			return Mock{}, err
 		}
@@ -293,7 +293,7 @@ func mockWithUnstagedFile() Client {
 func mockGtc() Client {
 	opt := mockOpt()
 	opt.Revision = "main"
-	c, err := Clone(opt)
+	c, err := Clone(opt, false)
 	if err != nil {
 		panic(err)
 	}
@@ -315,7 +315,7 @@ func mockWithRemoteTags(tagNames []string) Client {
 	rc := mockInit()
 	opt := mockOpt()
 	opt.OriginURL = rc.opt.DirPath
-	c, err := Clone(opt)
+	c, err := Clone(opt, false)
 	if err != nil {
 		panic(err)
 	}
@@ -332,7 +332,7 @@ func mockWithBehindFromRemote() Client {
 	rc := mockInit()
 	opt := mockOpt()
 	opt.OriginURL = rc.opt.DirPath
-	c, err := Clone(opt)
+	c, err := Clone(opt, false)
 	if err != nil {
 		panic(err)
 	}
