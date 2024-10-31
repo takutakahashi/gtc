@@ -91,12 +91,17 @@ func Open(opt ClientOpt) (Client, error) {
 	}
 	return Client{opt: opt, r: r}, nil
 }
-func Clone(opt ClientOpt) (Client, error) {
+func Clone(opt ClientOpt, shallow bool) (Client, error) {
+
 	cloneOpt := &git.CloneOptions{
 		URL:               opt.OriginURL,
 		ReferenceName:     plumbing.NewBranchReferenceName(opt.Revision),
 		RecurseSubmodules: git.DefaultSubmoduleRecursionDepth,
 		Auth:              opt.Auth.AuthMethod,
+	}
+	if shallow {
+		cloneOpt.Depth = 1
+		cloneOpt.SingleBranch = true
 	}
 	r, err := git.PlainClone(opt.DirPath, false, cloneOpt)
 	if err == nil {
